@@ -59,7 +59,13 @@ local t = Def.ActorFrame {
 	Name = "scoreBoard",
 	OnCommand = function(self)
 		SCREENMAN:GetTopScreen():AddInputCallback(input)
-	end
+	end,
+	ChangingTabToScoreMessageCommand = function(self)
+        self:bouncebegin(0.2):xy(700, 0)
+    end,
+    ExitTabScoreMessageCommand = function(self)
+        self:bouncebegin(0.2):xy(0, 0)
+    end
 }
 
 local function scoreitem(pn, index, scoreIndex, drawindex)

@@ -63,6 +63,7 @@ t[#t + 1] = LoadFont("Common Large") .. {
 	end
 }
 
+t[#t + 1] = LoadActor("../_volumecontrol")
 t[#t + 1] = LoadActor("../_cursor")
 
 return t

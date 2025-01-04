@@ -1,5 +1,7 @@
 local t = Def.ActorFrame {}
 local inMulti = Var("LoadingScreen") == "ScreenNetEvaluation"
+local idontknowhowtojumptrill = themeConfig:get_data().global.ManipFactorOption
+
 
 if GAMESTATE:GetNumPlayersEnabled() == 1 then
 	if inMulti then
@@ -33,7 +35,6 @@ local function UpdateTime(self)
 
 	local sessiontime = GAMESTATE:GetSessionTime()
 	self:GetChild("SessionTime"):settextf("%s: %s", translated_info["SessionTime"], SecondsToHHMMSS(sessiontime))
-	self:diffuse(nonButtonColor)
 end
 
 
@@ -1211,6 +1212,61 @@ local function scoreBoard(pn, position)
 	local cbr = 0
 	local cbm = 0
 
+	local radars = {"Holds", "Mines"}
+	local radars_translated = {
+		Holds = THEME:GetString("RadarCategory", "Holds"),
+		Mines = THEME:GetString("RadarCategory", "Mines")
+	}
+	local function radarEntry(i)
+		return Def.ActorFrame {
+			Name = "Radar"..radars[i],
+
+			LoadFont("Common Normal") .. {
+				InitCommand = function(self)
+					self:xy(-50 + 93 * i, frameY + 210)
+					self:zoom(0.4)
+					self:halign(0)
+					self:settext(radars_translated[radars[i]] .. ":")
+				end,
+			},
+			LoadFont("Common Normal") .. {
+				InitCommand = function(self)
+					self:xy(10 + 80 * i, frameY + 210)
+					self:zoom(0.4)
+					self:halign(0)
+				end,
+				BeginCommand = function(self)
+					self:queuecommand("Set")
+				end,
+				SetCommand = function(self)
+					self:settextf(
+						"%03d/%03d",
+						gatherRadarValue("RadarCategory_" .. radars[i], score),
+						score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
+					)
+				end,
+				ScoreChangedMessageCommand = function(self)
+					self:queuecommand("Set")
+				end,
+			},
+		}
+	end
+	local rb = Def.ActorFrame {
+		Name = "RadarContainer",
+		Def.Quad {
+			Name = "BG",
+			InitCommand = function(self)
+				self:xy(frameX - 5, frameY + 226):zoomto(frameWidth / 2 - 10, 56.5)
+				self:halign(0):valign(0)
+				self:diffusealpha(0)
+			end,
+		},
+	}
+	for i = 1, #radars do
+		rb[#rb+1] = radarEntry(i)
+	end
+	t[#t+1] = rb
+
 	-- basic per-hand stats to be expanded on later
 	local tst = ms.JudgeScalers
 	local tso = tst[judge]
@@ -1245,6 +1301,7 @@ local function scoreBoard(pn, position)
 				end
 			end
 		end
+		
 
 		local smallest, largest = wifeRange(devianceTable)
 		local statNames = {
@@ -1345,6 +1402,77 @@ local function scoreBoard(pn, position)
 	return t
 end
 
+--online scores calling event starts here--
+--if it works, don't touch as some say
+local tabindex = "local"
+
+t[#t + 1] = UIElements.QuadButton(1, 1) .. {
+	Name = "TabBGOnline",
+	InitCommand = function(self)
+		self:xy(522, SCREEN_CENTER_Y + 30):zoomto(50, 20):diffusecolor(getMainColor("frames")):diffusealpha(0.7):valign(1)
+	end,
+	MouseDownCommand = function(self, params)
+		if params.event == "DeviceButton_left mouse button" and tabindex == "local" then
+			MESSAGEMAN:Broadcast("ChangingTabToScore")
+			self:diffusecolor(Brightness(getMainColor("positive"),0.3)):diffusealpha(0.5)
+			self:linear(0.2):zoomto(50,25)
+		end
+	end,
+	ExitTabScoreMessageCommand = function(self)
+		tabindex = "local"
+		self:diffusecolor(getMainColor("frames")):diffusealpha(0.7)
+		self:linear(0.2):zoomto(50,20)
+	end
+}
+
+t[#t + 1] = LoadFont("Common Large") .. {
+	Name="EventLeaderboard",
+	InitCommand = function(self)
+		self:xy(508, SCREEN_CENTER_Y + 25):halign(0):valign(1):zoom(0.2):diffuse(getMainColor("positive"))
+		self:settext("Online")
+	end,
+	ChangingTabToScoreMessageCommand = function(self)
+		self:linear(0.2):y(SCREEN_CENTER_Y + 20)
+	end,
+	ExitTabScoreMessageCommand = function(self)
+		self:linear(0.2):y(SCREEN_CENTER_Y + 25)
+	end
+}
+
+t[#t + 1] = UIElements.QuadButton(1, 1) .. {
+	Name = "TabBGOffline",
+	InitCommand = function(self)
+		self:xy(472, SCREEN_CENTER_Y + 30):zoomto(50, 25):diffusecolor(Brightness(getMainColor("positive"),0.3)):diffusealpha(0.5):valign(1)
+	end,
+	ChangingTabToScoreMessageCommand = function(self)
+		tabindex = "online"
+		self:diffusecolor(getMainColor("frames")):diffusealpha(0.7)
+		self:linear(0.2):zoomto(50,20)
+	end,
+	MouseDownCommand = function(self, params)
+		if params.event == "DeviceButton_left mouse button" and tabindex == "online" then
+			MESSAGEMAN:Broadcast("ExitTabScore")
+			self:diffusecolor(Brightness(getMainColor("positive"),0.3)):diffusealpha(0.5)
+			self:linear(0.2):zoomto(50,25)
+		end
+	end
+}
+
+t[#t + 1] = LoadFont("Common Large") .. {
+	Name="EventExitLead",
+	InitCommand = function(self)
+		self:xy(460, SCREEN_CENTER_Y + 20):halign(0):valign(1):zoom(0.2):diffuse(getMainColor("positive"))
+		self:settext("Local")
+	end,
+	ChangingTabToScoreMessageCommand = function(self)
+		self:linear(0.2):y(SCREEN_CENTER_Y + 25)
+	end,
+	ExitTabScoreMessageCommand = function(self)
+		self:linear(0.2):y(SCREEN_CENTER_Y + 20)
+	end
+}
+--online thing ends here
+
 if GAMESTATE:IsPlayerEnabled() then
 	t[#t + 1] = scoreBoard(PLAYER_1, 0)
 end
@@ -1386,7 +1514,15 @@ t[#t + 1] = Def.ActorFrame {
 	}
 }
 
+
+t[#t + 1] = LoadActor("onlinescoreboard")
 t[#t + 1] = LoadActor("../offsetplot")
+
+
+if idontknowhowtojumptrill then
+t[#t + 1] = LoadActor("manipfactor")
+end
+
 updateDiscordStatus(true)
 
 return t
