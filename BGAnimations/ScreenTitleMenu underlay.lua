@@ -105,7 +105,7 @@ t[#t + 1] = UIElements.TextToolTip(1, 1, "Common Large") .. {
 		self:diffusebottomedge(Saturation(getMainColor("positive"), 0.8))
 	end,
 	OnCommand=function(self)
-		self:settext("Unredable Rain 1.68")
+		self:settext("Unredable Rain 1.69")
 	end,
 	MouseDownCommand = function(self, params)
 		if params.event == "DeviceButton_left mouse button" then
