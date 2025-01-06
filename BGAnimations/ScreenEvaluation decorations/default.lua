@@ -63,7 +63,7 @@ local dvt = {}
 local totalTaps = 0
 local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats()
 local graderaw = score:GetWifeGrade()
-
+local wifepinky --acc storer thing
 
 local frameX = 42
 local frameY = 220
@@ -563,25 +563,6 @@ local function scoreBoard(pn, position)
 			end, 
 			},
 			LoadFont("Common Large") .. {
-				Name = "Grade",
-			InitCommand = function(self)
-				self:xy(frameX + 30, frameY + 30)
-				self:zoom(0.75)
-				self:maxwidth(70)
-				self:settext("")
-			end, 
-			BeginCommand = function(self)
-				self:queuecommand("Set")
-			end,
-			SetCommand = function(self)
-				self:settext(getGradeStrings(graderaw))
-				self:diffuse(getGradeColor(graderaw))
-			end,
-			ScoreChangedMessageCommand = function(self)
-				self:queuecommand("Set")
-			end,
-			},
-			LoadFont("Common Large") .. {
 				Name = "NormalText",
 				InitCommand = function(self)
 					self:xy(frameX + 70, frameY + 9)
@@ -671,6 +652,8 @@ local function scoreBoard(pn, position)
 						"%05.4f%% (%s)",
 						notShit.floor(rescorepercent, 4), ws .. js
 					)
+					wifepinky = rescorepercent
+					MESSAGEMAN:Broadcast("GradePleaseDoThing")
 				end,
 				ScoreChangedMessageCommand = function(self)
 					self:queuecommand("Set")
@@ -692,6 +675,7 @@ local function scoreBoard(pn, position)
 						self:settextf(
 							"%05.4f%% (%s)", pct, ws .. judge2
 						)
+						wifepinky = pct
 					elseif params.Name == "NextJudge" and judge2 < 9 then
 						judge2 = judge2 + 1
 						rescorepercent = getRescoredWife3Judge(3, judge2, rescoretable)
@@ -701,6 +685,7 @@ local function scoreBoard(pn, position)
 						self:settextf(
 							"%05.4f%% (%s)", pct, ws .. js
 						)
+						wifepinky = pct
 					end
 					if params.Name == "ResetJudge" then
 						judge2 = GetTimingDifficulty()
@@ -708,6 +693,28 @@ local function scoreBoard(pn, position)
 					end
 				end,
 			},
+		},
+		LoadFont("Common Large") .. {
+			Name = "Grade",
+		InitCommand = function(self)
+			self:xy(frameX + 30, frameY + 30)
+			self:zoom(0.75)
+			self:maxwidth(70)
+			self:settext("")
+		end, 
+		BeginCommand = function(self)
+			self:queuecommand("Set")
+		end,
+		SetCommand = function(self)
+			self:settext(getGradeStrings(GetGradeFromPercent(wifepinky/100)))
+			self:diffuse(getGradeColor(GetGradeFromPercent(wifepinky/100)))
+		end,
+		ScoreChangedMessageCommand = function(self)
+			self:queuecommand("Set")
+		end,
+		GradePleaseDoThingMessageCommand = function(self)
+			self:queuecommand("Set")
+		end,
 		},
 		LoadFont("Common Normal") .. {
 			Name = "ModString",
@@ -1398,6 +1405,66 @@ local function scoreBoard(pn, position)
 		end
 		t[#t+1] = sl
 	end
+
+		--kind of a self note here but apparently the custom window fucks up if you delete the life graph and combo graph so im not touching anything here ever again	
+		-- life graph
+		local function GraphDisplay()
+			return Def.ActorFrame {
+				Def.GraphDisplay {
+					InitCommand = function(self)
+						self:Load("GraphDisplay")
+					end,
+					BeginCommand = function(self)
+						local ss = SCREENMAN:GetTopScreen():GetStageStats()
+						self:Set(ss, ss:GetPlayerStageStats())
+						self:diffusealpha(0)
+						self:GetChild("Line"):diffusealpha(0)
+						self:zoom(0.8)
+						self:xy(-22, 8)
+					end,
+					ScoreChangedMessageCommand = function(self)
+						if score and judge then
+							self:playcommand("RecalculateGraphs", {judge=judge})
+						end
+					end,
+					RecalculateGraphsMessageCommand = function(self, params)
+						-- called by the end of a codemessagecommand somewhere else
+						if not ms.JudgeScalers[params.judge] then return end
+						local success = SCREENMAN:GetTopScreen():RescoreReplay(SCREENMAN:GetTopScreen():GetStageStats():GetPlayerStageStats(), ms.JudgeScalers[params.judge], score, usingCustomWindows and currentCustomWindowConfigUsesOldestNoteFirst())
+						if not success then ms.ok("Failed to recalculate score for some reason...") return end
+						self:playcommand("Begin")
+						MESSAGEMAN:Broadcast("SetComboGraph")
+					end,
+				},
+			}
+		end
+	
+		-- combo graph
+		local function ComboGraph()
+			return Def.ActorFrame {
+				Def.ComboGraph {
+					InitCommand = function(self)
+						self:Load("ComboGraph")
+					end,
+					BeginCommand = function(self)
+						local ss = SCREENMAN:GetTopScreen():GetStageStats()
+						self:Set(ss, ss:GetPlayerStageStats())
+						self:zoom(0.8)
+						self:xy(-22, -2)
+						self:visible(false)
+					end,
+					SetComboGraphMessageCommand = function(self)
+						self:Clear()
+						self:Load("ComboGraph")
+						self:playcommand("Begin")
+					end,
+				},
+			}
+		end
+
+
+		t[#t + 1] = StandardDecorationFromTable("GraphDisplay" .. ToEnumShortString(PLAYER_1), GraphDisplay())
+		t[#t + 1] = StandardDecorationFromTable("ComboGraph" .. ToEnumShortString(PLAYER_1), ComboGraph())
 
 	return t
 end
