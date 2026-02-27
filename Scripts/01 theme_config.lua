@@ -14,6 +14,10 @@ local defaultConfig = {
 		FadeNoteFieldInSyncMachine = true,
 		ShowPlayerOptionsHint = true,
 		ShowBanners = true, -- false to turn off banners everywhere
+		ShowProfileBanners = false, -- false to turn off banners only on profile
+		WifeLeftRightHands = false,
+		ManipFactor = false,
+		ChordDensityTimeStamp = false
 	},
 	NPSDisplay = {
 		MaxWindow = 2,
@@ -35,4 +39,7 @@ function CenteredComboEnabled()
 end
 function BannersEnabled()
 	return themeConfig:get_data().global.ShowBanners
+end
+function ProfileBannersEnabled()
+	return themeConfig:get_data().global.ShowProfileBanners
 end

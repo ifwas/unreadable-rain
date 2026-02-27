@@ -65,9 +65,6 @@ local function updateGraphMultiVertex(parent, realgraph)
 				hodth = npsVector[i] * 2
 			end
 		end
-		
-		parent:GetChild("npsline"):y(-hidth * 0.7)
-		parent:GetChild("npstext"):settext(hodth / 2 * 0.7 .. translated_info["nps"]):y(-hidth * 0.9)
 		hodth = hidth/hodth
 		local verts = {} -- reset the vertices for the graph
 		local yOffset = 0 -- completely unnecessary, just a Y offset from the graph
@@ -76,7 +73,7 @@ local function updateGraphMultiVertex(parent, realgraph)
 			for column = 1,numberOfColumns do
 				if graphVectors[density][column] > 0 then
 					local barColor = getColorForDensity(density, ncol)
-					makeABar(verts, math.min(column * columnWidth, wodth), yOffset, columnWidth, graphVectors[density][column] * 2 * hodth, barColor)
+					makeABar(verts, yOffset, math.min(column * columnWidth, wodth), graphVectors[density][column] * 2 * hodth * -1, columnWidth, barColor)
 					if column > lastIndex then
 						lastIndex = column
 					end
@@ -113,12 +110,6 @@ local t = Def.ActorFrame {
 	PracticeModeReloadMessageCommand = function(self)
 		self:queuecommand("GraphUpdate")
 	end,
-	Def.Quad {
-        Name = "cdbg",
-        InitCommand = function(self)
-            self:zoomto(wodth, hidth + 2):valign(1):diffuse(color("1,1,1,1")):halign(0)
-        end
-    }
 }
 
 t[#t+1] = Def.ActorMultiVertex {
@@ -135,14 +126,6 @@ t[#t+1] = Def.ActorMultiVertex {
 		end
 	}
 
--- down here for draw order
-t[#t + 1] = Def.Quad {
-    Name = "npsline",
-    InitCommand = function(self)
-        self:zoomto(wodth, 2):diffusealpha(1):valign(1):diffuse(color(".75,0,0,0.75")):halign(0)
-    end,
-
-}
 
 t[#t + 1] = LoadFont("Common Normal") .. {
     Name = "npstext",

@@ -2,7 +2,7 @@
 local update = false
 local steps
 local song
-local frameX = 10
+local frameX = 5
 local frameY = 40
 local frameWidth = SCREEN_WIDTH * 0.56
 local frameHeight = 368
@@ -25,17 +25,16 @@ local translated_text = {
 	Title = THEME:GetString("TabMSD", "Title")
 }
 
-
 --Actor Frame
 local t = Def.ActorFrame {
 	Name = "MSDTab",
 	BeginCommand = function(self)
 		cd = self:GetChild("ChordDensityGraph")
-		cd:xy(frameX + offsetX, frameY + 122):visible(false)
+		cd:xy(0, 70):visible(false)
 		self:queuecommand("Set"):visible(false)
 	end,
 	OffCommand = function(self)
-		self:bouncebegin(0.2):xy(0, 500):diffusealpha(0)
+		self:bouncebegin(0.2):xy(-500, 0):diffusealpha(0)
 		self:sleep(0.04):queuecommand("Invis")
 	end,
 	InvisCommand= function(self)
@@ -67,7 +66,6 @@ local t = Def.ActorFrame {
 			if song and steps then
 				cd:visible(true)
 				cd:queuecommand("GraphUpdate")
-				MESSAGEMAN:Broadcast("SetSteps",{steps = steps})
 			else
 				cd:visible(false)
 			end
@@ -91,74 +89,18 @@ local t = Def.ActorFrame {
 	end,
 }
 
---BG quad
-t[#t + 1] = Def.Quad {
+t[#t + 1] = Def.Quad{
 	InitCommand = function(self)
-		self:xy(frameX, frameY):zoomto(frameWidth, frameHeight):halign(0):valign(0):diffuse(getMainColor("tabs"))
+		self:xy(0,0):zoomto(270, SCREEN_HEIGHT):valign(0):diffuse(getMainColor("positive")):faderight(0.4):diffusealpha(0.1)
 	end
 }
 
-
-
---Tab Title Frame
-t[#t + 1] = Def.Quad {
-	InitCommand = function(self)
-		self:xy(frameX, frameY):zoomto(frameWidth, offsetY):halign(0):valign(0):diffuse(getMainColor("frames"))
-		self:diffusealpha(0.5)
-	end
-}
 --Tab Title
-t[#t + 1] = LoadFont("Common Bold") .. {
+t[#t + 1] = LoadFont("Common Normal") .. {
 	InitCommand = function(self)
-		self:xy(frameX + offsetX/2, frameY + offsetY - 11):zoom(0.4):halign(0)
+		self:xy(frameX, frameY + offsetY - 11):zoom(0.4):halign(0)
 		self:settextf("%s (Calc v%s)",translated_text["Title"], GetCalcVersion())
-	end
-}
---Song Title
-t[#t + 1] = LoadFont("Common Large") .. {
-	InitCommand = function(self)
-		self:xy(frameX + offsetX, frameY + 35):zoom(0.45):halign(0):diffuse(getMainColor("positive"))
-		self:maxwidth(SCREEN_CENTER_X / 0.5)
-		self:diffusetopedge(Saturation(getMainColor("highlight"), 0.2))
-		self:diffusebottomedge(Saturation(getMainColor("positive"), 0.3))
-	end,
-	SetCommand = function(self)
-		if song then
-			self:settext(song:GetDisplayMainTitle())
-		else
-			self:settext("")
-		end
-	end
-}
-
---Author Title
-t[#t + 1] = LoadFont("Common Large") .. {
-	InitCommand = function(self)
-		self:xy(frameX + offsetX, frameY + 53):zoom(0.2):halign(0):diffuse(getMainColor("positive"))
-		self:maxwidth(SCREEN_CENTER_X / 0.5)
-		self:diffusetopedge(Saturation(getMainColor("highlight"), 0.2))
-		self:diffusebottomedge(Saturation(getMainColor("positive"), 0.3))
-	end,
-	SetCommand = function(self)
-		if song then
-			self:settext("Made by: " .. song:GetOrTryAtLeastToGetSimfileAuthor())
-		else
-			self:settext("")
-		end
-	end
-}
-
--- Music Rate Display
-t[#t + 1] = LoadFont("Common Large") .. {
-	InitCommand = function(self)
-		self:xy(frameX + capWideScale(290,310), frameY + 123):visible(true):align(1,0):zoom(0.3)
-	end,
-	SetCommand = function(self)
-		if steps then
-			self:settext(getCurRateDisplayString(true))
-		else
-			self:settext("")
-		end
+		self:diffuse(Saturation(getMainColor("positive"), 0.1))
 	end
 }
 
@@ -166,7 +108,7 @@ t[#t + 1] = LoadFont("Common Large") .. {
 t[#t + 1] = LoadFont("Common Normal") .. {
 	Name = "StepsAndMeter",
 	InitCommand = function(self)
-		self:xy(frameX + offsetX, frameY + offsetY + 46):zoom(0.5):halign(0):maxwidth(350)
+		self:xy(frameX + offsetX, frameY + offsetY + 44):zoom(0.5):halign(0):maxwidth(350)
 	end,
 	SetCommand = function(self)
 		steps = GAMESTATE:GetCurrentSteps()
@@ -188,7 +130,7 @@ t[#t + 1] = LoadFont("Common Normal") .. {
 t[#t + 1] = LoadFont("Common Normal") .. {
 	Name = "NPS",
 	InitCommand = function(self)
-		self:xy(frameX + offsetX + 175, frameY + offsetY + 47):zoom(0.45):halign(0)
+		self:xy(frameX + offsetX + 175, frameY + offsetY + 44):zoom(0.45):halign(0)
 	end,
 	SetCommand = function(self)
 		steps = GAMESTATE:GetCurrentSteps()
@@ -207,76 +149,7 @@ t[#t + 1] = LoadFont("Common Normal") .. {
 	end
 }
 
--- cdtitle
-t[#t + 1] = UIElements.SpriteButton(1, 1, nil) .. {
-	InitCommand = function(self)
-		self:xy(capWideScale(get43size(344), 364) + 50, capWideScale(get43size(350), 160))
-		self:halign(0.5):valign(1)
-	end,
-	SetCommand = function(self)
-		self:finishtweening()
-		self.song = song
-		if song then
-			if song:HasCDTitle() then
-				self:visible(true)
-				self:Load(song:GetCDTitlePath()):bob():effectmagnitude(0,1,0):diffusealpha(1)
-			else
-				self:visible(true)
-				self:Load(THEME:GetPathG("","cdtitle")):diffusealpha(0) --honestly i could just make it load whatever asset it had, but whatever
-			end
-		else
-			self:visible(false)
-		end
-		local height = self:GetHeight()
-		local width = self:GetWidth()
 
-		if height >= 60 and width >= 75 then
-			if height * (75 / 60) >= width then
-				self:zoom(60 / height)
-			else
-				self:zoom(75 / width)
-			end
-		elseif height >= 60 then
-			self:zoom(60 / height)
-		elseif width >= 75 then
-			self:zoom(75 / width)
-		else
-			self:zoom(1)
-		end
-		if isOver(self) then
-			self:playcommand("ToolTip")
-		end
-	end,
-	ToolTipCommand = function(self)
-		if isOver(self) then
-			if self.song and self:GetVisible() then 
-				local auth = self.song:GetOrTryAtLeastToGetSimfileAuthor()
-				if auth and #auth > 0 and auth ~= "Author Unknown" then
-					TOOLTIP:SetText(auth)
-					TOOLTIP:Show()
-				else
-					TOOLTIP:Hide()
-				end
-			else
-				TOOLTIP:Hide()
-			end
-		end
-	end,
-	MouseOverCommand = function(self)
-		self:playcommand("ToolTip")
-	end,
-	MouseOutCommand = function(self)
-		TOOLTIP:Hide()
-	end,
-}
-
-
-t[#t+1] = LoadActor("ssrbreakdown") .. {
-	InitCommand = function(self)
-		self:xy(capWideScale(135,160),280)
-		self:delayedFadeIn(4)
-	end
-}
 
 t[#t + 1] = LoadActor("../_chorddensitygraph.lua")
 

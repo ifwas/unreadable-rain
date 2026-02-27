@@ -1,5 +1,11 @@
 local lastclick = GetTimeSinceStart()
+local tagTable = {}
 local requiredtimegap = 0.1
+
+local function tagCheck(step)
+    tagTable = {}
+
+end
 
 return Def.ActorFrame {
     UIElements.QuadButton(1, 1) .. {
@@ -7,15 +13,15 @@ return Def.ActorFrame {
 			self:halign(0)
 			self:xy(0,0)
 			self:diffusealpha(0)
-			self:zoomto(854, 38)
+			self:zoomto(854, 30)
 		end,
         SetCommand = function(self, params)
             self.index = params.DrawIndex
         end,
 		MouseDownCommand = function(self, params)
-            if params.event == "DeviceButton_left mouse button" then
+            if params.event == "DeviceButton_left mouse button" and getTabIndex() ~= 4 then
                 local now = GetTimeSinceStart()
-                if now - lastclick < requiredtimegap then return end
+                if now - lastclick < requiredtimegap then return end --fuckass math
                 lastclick = now
 
                 local numwheelitems = 15
@@ -37,10 +43,8 @@ return Def.ActorFrame {
                     end
                 end
             elseif params.event == "DeviceButton_right mouse button" then
-                -- right click opens playlists
-                local tind = getTabIndex()
-	    		setTabIndex(7)
-    			MESSAGEMAN:Broadcast("TabChanged", {from = tind, to = 7})
+                SCREENMAN:GetTopScreen():PauseSampleMusic()
+                MESSAGEMAN:Broadcast("MusicPauseToggled")
             end
 		end,
 	},

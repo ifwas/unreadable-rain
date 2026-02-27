@@ -8,7 +8,7 @@ local defaultConfig = {
 	main = {
 		highlight = "#614080",
 		frames = "#000111",
-		tabs = "#00000099",
+		tabs = "#2E2E2E99",
 		enabled = "#4CBB17",
 		disabled = "#666666",
 		negative = "#FF9999",
@@ -286,13 +286,4 @@ function bySkillRange(x)
 	else
 		return color("#c97bff")
 	end
-end
-
--- the graph kills itself if this function doesn't exist soooooo i'll just put this
--- also if you attempt to make the colors the same as the byMSD function the graph also kills itself, dunno why and i don't really care
-function getMSDColor(MSD)
-	if MSD then
-		return HSV(math.min(220,math.max(280 - MSD*11, -40)), 0.5, 1)
-	end
-	return HSV(0, 0.9, 0.9)
 end

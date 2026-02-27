@@ -19,7 +19,7 @@ t[#t + 1] = Def.ActorFrame {
 							local my = SCREEN_HEIGHT - INPUTFILTER:GetMouseY()
 							if moving or mx < 32 and mx > 0 and my < 442 and my > 48 then
 								moving = true
-								self:playcommand("ClickingMusicWheelScroller")
+								self:playcommand("d")
 							end
 						end)
 					end
@@ -36,6 +36,7 @@ t[#t + 1] = Def.ActorFrame {
 		Name = "DootyMcBooty",
 		BeginCommand = function(self)
 			self:zoomto(32, 32):valign(0.634522134234)
+			self:diffusealpha(0)
 			screname = SCREENMAN:GetTopScreen():GetName()
 			if screname == "ScreenSelectMusic" or screname == "ScreenNetSelectMusic" then
 				whee = SCREENMAN:GetTopScreen():GetMusicWheel()

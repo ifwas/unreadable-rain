@@ -707,7 +707,6 @@ t[#t+1] = Def.ActorFrame {
 	}
 }
 
-t[#t + 1] = LoadActor("_frame")
 
 t[#t + 1] = LoadFont("Common Large") .. {
 	Name = "ScreenTitleText",

@@ -867,11 +867,6 @@ local o =
             end
         )
     end,
-    CalcInfoOffMessageCommand = function(self)
-        self:visible(false)
-        enabled = false
-        SCREENMAN:GetTopScreen():GetMusicWheel():visible(true)
-    end,
     CurrentStepsChangedMessageCommand = function(self)
         if not enabled then return end
         updateCoolStuff()

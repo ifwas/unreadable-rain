@@ -1,11 +1,12 @@
 local itsOn = false -- chart preview state
-local stepsdisplayx = SCREEN_WIDTH * 0.56 - 54
+local stepsdisplayx = 5
 local thesteps = {}
 
-local rowwidth = 60
+local rowwidth = 35
 local rowheight = 17
 local cursorwidth = 6
-local cursorheight = 17
+local cursorheight = rowheight
+local offsetthing = cursorwidth
 
 local numshown = 7
 local currentindex = 1
@@ -14,7 +15,7 @@ local displayindexoffset = 0
 local sd = Def.ActorFrame {
 	Name = "StepsDisplay",
 	InitCommand = function(self)
-		self:xy(stepsdisplayx, 68):valign(0)
+		self:xy(stepsdisplayx, SCREEN_BOTTOM - 50):valign(0)
 	end,
 	OffCommand = function(self)
 		self:visible(false)
@@ -69,31 +70,13 @@ local sd = Def.ActorFrame {
 				)
 			end
 		end
-	end,
-	ChartPreviewOnMessageCommand = function(self)
-		if not itsOn then
-			self:addx(capWideScale(12, 0)):addy(capWideScale(18, 0))
-			itsOn = true
-		end
-	end,
-	ChartPreviewOffMessageCommand = function(self)
-		if itsOn then
-			self:addx(capWideScale(-12, 0)):addy(capWideScale(-18, 0))
-			itsOn = false
-		end
-	end,
-	CalcInfoOnMessageCommand = function(self)
-		self:x(20)
-	end,
-	CalcInfoOffMessageCommand = function(self)
-		self:x(stepsdisplayx)
 	end
 }
 
 local function stepsRows(i)
 	local o = Def.ActorFrame {
 		InitCommand = function(self)
-			self:y(rowheight * (i - 1))
+			self:x(rowwidth * (i - 1) + offsetthing * (i - 1))
 		end,
 		UIElements.QuadButton(1, 1) .. {
 			InitCommand = function(self)
@@ -119,7 +102,7 @@ local function stepsRows(i)
 		},
 		Def.Quad {
 			InitCommand = function(self)
-				self:zoomto(24, rowheight):halign(0)
+				self:zoomto(18, rowheight):halign(0)
 			end,
 			UpdateStepsRowsCommand = function(self)
 				local steps = thesteps[i + displayindexoffset]
@@ -135,7 +118,7 @@ local function stepsRows(i)
 		-- Chart defined "Meter" value, not msd (useful to have this for reference)
 		LoadFont("Common Large") .. {
 			InitCommand = function(self)
-				self:x(rowwidth - cursorwidth - 2):addy(-1):zoom(0.35):settext(""):halign(1):maxwidth(75)
+				self:x(rowwidth / 1.3):addy(-1):zoom(0.2):settext(""):halign(0.5):maxwidth(75)
 			end,
 			UpdateStepsRowsCommand = function(self)
 				local steps = thesteps[i + displayindexoffset]
@@ -149,7 +132,7 @@ local function stepsRows(i)
 		--chart difficulty name
 		LoadFont("Common Large") .. {
 			InitCommand = function(self)
-				self:x(12):zoom(0.18):settext(""):halign(0.5):valign(0)
+				self:x(10):zoom(0.16):settext(""):halign(0.5):valign(0)
 			end,
 			UpdateStepsRowsCommand = function(self)
 				local steps = thesteps[i + displayindexoffset]
@@ -164,7 +147,7 @@ local function stepsRows(i)
 		--chart steps type
 		LoadFont("Common Large") .. {
 			InitCommand = function(self)
-				self:x(12):addy(-9):zoom(0.18):settext(""):halign(0.5):valign(0):maxwidth(23 / 0.18)
+				self:x(10):addy(-9):zoom(0.16):settext(""):halign(0.5):valign(0):maxwidth(23 / 0.18)
 			end,
 			UpdateStepsRowsCommand = function(self)
 				local steps = thesteps[i + displayindexoffset]
@@ -219,7 +202,7 @@ sd[#sd + 1] = Def.Quad {
 		end
 
 		self:finishtweening()
-		self:smooth(0.03):y(cursorheight * (currentindex - 1))
+		self:smooth(0.03):x(cursorwidth + rowwidth * (currentindex) + offsetthing * (currentindex - 1))
 
 		if self:GetParent():GetVisible() then
 			self:GetParent():GetChild("StepsRows"):playcommand("UpdateStepsRows")

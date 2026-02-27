@@ -1,19 +1,6 @@
 return Def.ActorFrame {
 	Def.Quad {
 		InitCommand = function(self)
-			self:xy(2, -2):zoomto(4, 38)
-		end,
-		SetGradeCommand = function(self, params)
-			if params.Grade then
-				self:diffuse(getDifficultyColor("Difficulty_" .. params.Difficulty))
-				self:diffusealpha(0.5)
-			else
-				self:diffusealpha(0)
-			end
-		end
-	},
-	Def.Quad {
-		InitCommand = function(self)
 			self:xy(2, -2):zoomto(4, 19)
 		end,
 		SetGradeCommand = function(self, params)
@@ -42,12 +29,13 @@ return Def.ActorFrame {
 	},
 	Def.Sprite {
 		InitCommand = function(self)
-			self:xy(-9, -15):zoomto(4, 19)
+			self:xy(455, -3):zoomto(4, 19)
+			self:wag()
 		end,
 		SetGradeCommand = function(self, params)
 			if params.PermaMirror then
 				self:Load(THEME:GetPathG("", "mirror"))
-				self:zoomto(20, 20)
+				self:zoomto(13, 13)
 				self:visible(true)
 			else
 				self:visible(false)
@@ -56,16 +44,26 @@ return Def.ActorFrame {
 	},
 	Def.Sprite {
 		InitCommand = function(self)
-			self:xy(1, -15):zoomto(4, 19)
+			self:xy(455, -5):zoomto(4, 19)
+			self:halign(0.5)
+			self:pulse()
 		end,
 		SetGradeCommand = function(self, params)
 			if params.Favorited then
 				self:Load(THEME:GetPathG("", "favorite"))
-				self:zoomto(16, 16)
+				self:zoomto(12, 12)
 				self:visible(true)
 			else
 				self:visible(false)
 			end
+		end,
+		SetMessageCommand = function(self,params)
+			local song = params.Song
+			if song and self:IsVisible() then 
+				local titleSong = song:GetDisplayMainTitle()
+				
+				self:x(30 + (#titleSong * 6.3))
+			end
 		end
-	}
+	},
 }

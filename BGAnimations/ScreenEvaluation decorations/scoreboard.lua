@@ -174,6 +174,7 @@ local function scoreitem(pn, index, scoreIndex, drawindex)
 						self:GetParent():GetParent():playcommand("HahaThisCodeINeedHelp", {doot = newindex})
 						self:GetParent():GetParent():GetParent():GetChild("ScoreDisplay"):playcommand("ChangeScore", {score =  hsTable[index]})
 						self:GetParent():GetParent():GetParent():GetChild("OffsetPlot"):playcommand("SetFromScore", {score =  hsTable[index]})
+						MESSAGEMAN:Broadcast("GetScore", {score = hsTable[index]})
 					end
 				end
 			end,

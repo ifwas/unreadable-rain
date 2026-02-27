@@ -1,22 +1,29 @@
 local t = Def.ActorFrame {}
-t[#t + 1] = LoadActor("_lightinfo")
+
+local basePath = PROFILEMAN:GetProfileDir(1)
+local saveFile = basePath .. "lastfmstr.txt"
+local str
+
+--Group folder name
+local frameWidth = 280
+local frameHeight = 20
+local frameX = SCREEN_WIDTH - 5
+local frameY = 20
+
+
+
+t[#t + 1] = LoadActor("../_PlayerInfo")
 
 translated_info = {
 	Title = THEME:GetString("ScreenEvaluation", "Title"),
 	Replay = THEME:GetString("ScreenEvaluation", "ReplayTitle")
 }
 
---Group folder name
-local frameWidth = 280
-local frameHeight = 20
-local frameX = SCREEN_WIDTH - 5
-local frameY = SCREEN_BOTTOM - 2
-
 --cdtitle
 t[#t + 1] = UIElements.SpriteButton(1, 1, nil) .. {
 	Texture= GAMESTATE:GetCurrentSong():GetCDTitlePath(),
 	InitCommand=function(self)
-		self:xy(SCREEN_LEFT + 350, 100):wag():effectmagnitude(0,0,5)
+		self:xy(frameX - frameWidth + 20, 150):wag():effectmagnitude(0,0,5)
 
 		local height = self:GetHeight()
 		local width = self:GetWidth()
@@ -39,6 +46,7 @@ t[#t + 1] = UIElements.SpriteButton(1, 1, nil) .. {
 		if isOver(self) then
 			local auth = GAMESTATE:GetCurrentSong():GetOrTryAtLeastToGetSimfileAuthor()
 			TOOLTIP:SetText(auth)
+			TOOLTIP:SwitchSide(false)
 			TOOLTIP:Show()
 		end
 	end,
@@ -50,6 +58,7 @@ t[#t + 1] = UIElements.SpriteButton(1, 1, nil) .. {
 	end,
 }
 
+
 --what the settext says
 t[#t + 1] = LoadFont("Common Large") .. {
 	InitCommand = function(self)
@@ -59,7 +68,15 @@ t[#t + 1] = LoadFont("Common Large") .. {
 	OnCommand = function(self)
 		local title = translated_info["Title"]
 		local ss = SCREENMAN:GetTopScreen():GetStageStats()
-		if not ss:GetLivePlay() then title = translated_info["Replay"] end
+		if not ss:GetLivePlay() then 
+			title = translated_info["Replay"]
+		else
+			local songName = GAMESTATE:GetCurrentSong():GetDisplayMainTitle()
+			local songArtist = GAMESTATE:GetCurrentSong():GetDisplayArtist()
+
+			str = string.format("%s\n%s", songArtist, songName)
+			File.Write(saveFile, str)
+		end 
 		local gamename = GAMESTATE:GetCurrentGame():GetName():lower()
 		if gamename ~= "dance" then
 			title = gamename:gsub("^%l", string.upper) .. " " .. title
@@ -72,10 +89,10 @@ t[#t + 1] = LoadFont("Common Large") .. {
 
 t[#t + 1] = LoadFont("Common Large") .. {
 	InitCommand = function(self)
-		self:xy(frameX, frameY):halign(1):valign(1):zoom(0.35):maxwidth((frameWidth - 40) / 0.35)
+		self:xy(frameX, frameY):halign(1):zoom(0.35):maxwidth((frameWidth - 40) / 0.35):valign(1)
 	end,
 	BeginCommand = function(self)
-		self:queuecommand("Set"):diffuse(getMainColor("positive")):diffusebottomedge(Saturation(getMainColor("highlight"), 0.2))
+		self:queuecommand("Set"):diffuse(getMainColor("positive"))
 	end,
 	SetCommand = function(self)
 		local song = GAMESTATE:GetCurrentSong()
