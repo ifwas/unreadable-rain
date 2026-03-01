@@ -15,7 +15,7 @@ local csecond
 local motnt = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 local leapmnt = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 
-local numscores = 11
+local numscores = 10
 local ind = 0
 local offx = 5
 local width = 202
