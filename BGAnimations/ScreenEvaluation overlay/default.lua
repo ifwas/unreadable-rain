@@ -4,8 +4,24 @@ translated_info = {
 	Title = THEME:GetString("ScreenEvaluation", "Title"),
 	Replay = THEME:GetString("ScreenEvaluation", "ReplayTitle")
 }
+local nonButtonColor = ColorMultiplier(getMainColor("positive"), 1.25)
 
 t[#t + 1] = LoadActor("../_PlayerInfo")
+
+local function UpdateTime(self)
+	local year = Year()
+	local month = MonthOfYear() + 1
+	local day = DayOfMonth()
+	local hour = Hour()
+	local minute = Minute()
+	local second = Second()
+	self:GetChild("CurrentTime"):settextf("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
+
+	local sessiontime = GAMESTATE:GetSessionTime()
+	self:GetChild("SessionTime"):settextf("%s", SecondsToHHMMSS(sessiontime))
+	self:diffuse(nonButtonColor)
+end
+
 
 --readded this bc the gradecounter breaks if the replay results text is not present
 --thanks steffen
@@ -64,6 +80,25 @@ t[#t + 1] = LoadFont("Common Large") .. {
 			self:settext(song:GetGroupName())
 		end
 	end
+}
+
+t[#t + 1] = Def.ActorFrame {
+	InitCommand = function(self)
+		self:SetUpdateFunction(UpdateTime)
+	end,
+	LoadFont("Common Normal") .. {
+		Name = "CurrentTime",
+		InitCommand = function(self)
+			self:xy(SCREEN_WIDTH - 2,SCREEN_BOTTOM - 4):halign(1):valign(1):zoom(0.35)
+		end
+	},
+
+	LoadFont("Common Normal") .. {
+		Name = "SessionTime",
+		InitCommand = function(self)
+			self:xy(SCREEN_WIDTH - 2,SCREEN_BOTTOM - 14):halign(1):valign(1):zoom(0.35)
+		end
+	}
 }
 
 t[#t + 1] = LoadActor("../_cursor")
