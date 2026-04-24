@@ -59,7 +59,13 @@ local t = Def.ActorFrame {
 	Name = "scoreBoard",
 	OnCommand = function(self)
 		SCREENMAN:GetTopScreen():AddInputCallback(input)
-	end
+	end,
+	ChangingTabToScoreMessageCommand = function(self)
+        self:bouncebegin(0.2):xy(700, 0)
+    end,
+    ExitTabScoreMessageCommand = function(self)
+        self:bouncebegin(0.2):xy(0, 0)
+    end
 }
 
 local function scoreitem(pn, index, scoreIndex, drawindex)
@@ -174,7 +180,6 @@ local function scoreitem(pn, index, scoreIndex, drawindex)
 						self:GetParent():GetParent():playcommand("HahaThisCodeINeedHelp", {doot = newindex})
 						self:GetParent():GetParent():GetParent():GetChild("ScoreDisplay"):playcommand("ChangeScore", {score =  hsTable[index]})
 						self:GetParent():GetParent():GetParent():GetChild("OffsetPlot"):playcommand("SetFromScore", {score =  hsTable[index]})
-						MESSAGEMAN:Broadcast("GetScore", {score = hsTable[index]})
 					end
 				end
 			end,

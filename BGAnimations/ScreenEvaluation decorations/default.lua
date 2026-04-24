@@ -1,5 +1,6 @@
 local t = Def.ActorFrame {}
 local inMulti = Var("LoadingScreen") == "ScreenNetEvaluation"
+local idontknowhowtojumptrill = themeConfig:get_data().global.ManipFactor
 
 if GAMESTATE:GetNumPlayersEnabled() == 1 then
 	if inMulti then
@@ -15,34 +16,27 @@ end
 	The primary rescore function is hiding in the function responsible for displaying the graphs, which may or may not be called by random code everywhere.
 ]]
 
-
-local naenae = false
-local egg = PREFSMAN:GetPreference("EasterEggs")
-local LeftRightaddonOn = themeConfig:get_data().global.WifeLeftRightHands
 local translated_info = {
 	CCOn = THEME:GetString("ScreenEvaluation", "ChordCohesionOn"),
-	MAPARatio = THEME:GetString("ScreenEvaluation", "MAPARatio")
+	MAPARatio = THEME:GetString("ScreenEvaluation", "MAPARatio"),
+	SessionTime = THEME:GetString("GeneralInfo", "SessionTime"),
 }
 
+--from infoplayer
+local function UpdateTime(self)
+	local year = Year()
+	local month = MonthOfYear() + 1
+	local day = DayOfMonth()
+	local hour = Hour()
+	local minute = Minute()
+	local second = Second()
+	self:GetChild("CurrentTime"):settextf("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
 
-local gradeThresholds = {
-    {99.9935, "QuintupleAward"},
-    {99.98,   "TwoDotQuadReward"},
-    {99.97,   "OneDotQuadReward"},
-    {99.955,  "QuadAward"},
-    {99.9,    "TwoDotTripleAReward"},
-    {99.8,    "OneDotTripleAReward"},
-    {99.7,    "TripleAReward"},
-}
-
-local function getWifeyGrade(wifey)
-    for _, grade in ipairs(gradeThresholds) do
-        if wifey >= grade[1] then
-            return grade[2]
-        end
-    end
-    return nil
+	local sessiontime = GAMESTATE:GetSessionTime()
+	self:GetChild("SessionTime"):settextf("%s: %s", translated_info["SessionTime"], SecondsToHHMMSS(sessiontime))
+	self:diffuse(nonButtonColor)
 end
+
 
 -- im going to cry
 local aboutToForceWindowSettings = false
@@ -59,20 +53,6 @@ local function scaleToJudge(scale)
 	return out
 end
 
---there's not a whole lot of variables we can store, so doing a table is the best way to do this while 
---also keeping track which thing does what and what addon does need it
-local LeftRightWifeAddon = {
-	dvt = {},
-	dvtL = {}, 
-	dvtR = {},
-	hvtL = 0,
-	hvtR = 0,
-	wifetableL = {},
-	wifetableR = {},
-	wifeL = 0,
-	wifeR = 0
-}
-
 local judge = PREFSMAN:GetPreference("SortBySSRNormPercent") and 4 or GetTimingDifficulty()
 local judge2 = judge
 local score = SCOREMAN:GetMostRecentScore()
@@ -82,11 +62,12 @@ end
 local dvt = {}
 local totalTaps = 0
 local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats()
-local storedpiss
+local graderaw = score:GetWifeGrade()
 
-local frameX = 20
-local frameY = 140
-local frameWidth = SCREEN_CENTER_X - 120
+
+local frameX = 42
+local frameY = 220
+local frameWidth = SCREEN_CENTER_X - 100
 
 -- dont default to using custom windows and dont persist that state
 -- custom windows are meant to be used as a thing you occasionally check, not the primary way to play the game
@@ -102,11 +83,21 @@ local judges = {
 	"TapNoteScore_Miss"
 }
 
-local LeftRightWifeAddonPositions = {
-	lrX = frameX + 5 +  frameWidth / 2,
-	lrY = frameY + 240,
-	lrtextSize = 0.3
+
+
+--Metadata Variables and table related things
+-----------------------------------------------------------------------------------------------
+local songInfoX = SCREEN_CENTER_X - frameWidth - frameX - 25
+local songInfoY = SCREEN_TOP + 50
+
+local someZoomTable = {
+	zoomSongTitle = 1 / 1.5,
+	zoomArtist = 1 / 4,
+	zoomRateString = 1 / 2,
+	zoomSimAuthor = 1 / 6
 }
+-----------------------------------------------------------------------------------------------
+--the metadata in question
 
 t[#t+1] = Def.ActorFrame {
 	Name = "SongInfo",
@@ -114,9 +105,10 @@ t[#t+1] = Def.ActorFrame {
 	LoadFont("Common Large") .. {
 		Name = "SongTitle",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, capWideScale(124, 150))
-			self:zoom(0.25)
+			self:xy(songInfoX, songInfoY)
+			self:zoom(someZoomTable.zoomSongTitle)
 			self:maxwidth(capWideScale(250 / 0.25, 180 / 0.25))
+			self:halign(0)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -128,9 +120,10 @@ t[#t+1] = Def.ActorFrame {
 	LoadFont("Common Large") .. {
 		Name = "SongArtist",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, capWideScale(139, 165))
-			self:zoom(0.25)
+			self:xy(songInfoX + 2, songInfoY + 23)
+			self:zoom(someZoomTable.zoomArtist)
 			self:maxwidth(180 / 0.25)
+			self:halign(0)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -140,11 +133,27 @@ t[#t+1] = Def.ActorFrame {
 		end,
 	},
 	LoadFont("Common Large") .. {
+		Name = "SimAuthor",
+		InitCommand = function(self)
+			self:xy(songInfoX + 3, songInfoY + 36)
+			self:zoom(someZoomTable.zoomSimAuthor)
+			self:diffuse(getMainColor("positive"))
+			self:maxwidth(180 / 0.25)
+			self:halign(0)
+		end,
+		BeginCommand = function(self)
+			self:queuecommand("Set")
+		end,
+		SetCommand = function(self)
+			self:settext("By: " .. GAMESTATE:GetCurrentSong():GetOrTryAtLeastToGetSimfileAuthor())
+		end,
+	},
+	LoadFont("Common Large") .. {
 		Name = "RateString",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, capWideScale(154, 180))
-			self:zoom(0.25)
-			self:halign(0.5)
+			self:xy(songInfoX, songInfoY + 55)
+			self:zoom(someZoomTable.zoomRateString)
+			self:halign(0)
 			self:queuecommand("Set")
 		end,
 		ScoreChangedMessageCommand = function(self)
@@ -162,35 +171,20 @@ t[#t+1] = Def.ActorFrame {
 			rate = notShit.round(rate,3)
 			local ratestr = getRateString(rate)
 			if ratestr == "1x" then
+				self:GetParent():y(songInfoY - 30)
 				self:settext("")
 			else
 				self:settext(ratestr)
 			end
 		end,
 	},
-	Def.Sprite {
-		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X + 50, 260)
-			self:visible(false)
-		end,
-		LongerPercentDoneMessageCommand = function(self)
-			self:visible(false)
-			if egg and naenae then 
-				local reward = getWifeyGrade(storedpiss)
-				if reward then
-					path = THEME:GetPathG("", "Grades/" .. reward)
-					self:Load(path)
-					self:visible(true):zoomto(60,60)
-				end
-			end
-		end
-	},
 	LoadFont("Common Large") .. {
 		Name = "Subtitle",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, SCREEN_BOTTOM - 34)
-			self:zoom(0.23)
+			self:xy(SCREEN_CENTER_X + capWideScale(get43size(150),0), SCREEN_BOTTOM - 13)
+			self:zoom(0.25)
 			self:maxwidth(capWideScale(500 / 0.25, 500 / 0.25))
+			self:diffuse(getMainColor("positive"))
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -199,14 +193,38 @@ t[#t+1] = Def.ActorFrame {
 			if GAMESTATE:GetCurrentSong():GetDisplaySubTitle() == "" then
 			   self:settext("")
 		    else
-			   self:settext("\""..GAMESTATE:GetCurrentSong():GetDisplaySubTitle().. "\"")
+			   self:settext("''"..GAMESTATE:GetCurrentSong():GetDisplaySubTitle().. "''")
 		    end
 		end,
 	},
 }
 
+--cdtitle
+t[#t + 1] = Def.Sprite {
+	Texture= GAMESTATE:GetCurrentSong():GetCDTitlePath(),
+	InitCommand=function(self)
+		self:xy(SCREEN_CENTER_X - 60,SCREEN_CENTER_Y - 120):wag()
 
+		local height = self:GetHeight()
+		local width = self:GetWidth()
 
+		if height >= 60 and width >= 75 then
+			if height * (75 / 60) >= width then
+				self:zoom(40 / height)
+			else
+				self:zoom(56.25 / width)
+			end
+		elseif height >= 60 then
+			self:zoom(40 / height)
+		elseif width >= 75 then
+			self:zoom(56.25 / width)
+		else
+			self:zoom(0.75)
+		end
+	end
+}
+
+-----------------------------------------------------------------------------------------------
 -- a helper to get the radar value for a score and fall back to playerstagestats if that fails
 local function gatherRadarValue(radar, score)
     local n = score:GetRadarValues():GetValue(radar)
@@ -228,9 +246,6 @@ local function getRescoreElements(score)
 end
 local lastSnapshot = nil
 
-local mineL = 0
-local mineR = 0
-
 local function scoreBoard(pn, position)
 	local dvtTmp = {}
 	local tvt = {}
@@ -242,51 +257,6 @@ local function scoreBoard(pn, position)
 		replay:LoadAllData()
 		local dvtTmp = replay:GetOffsetVector()
 		local tvt = replay:GetTapNoteTypeVector()
-		
-		if LeftRightaddonOn then 
-			local hvt = replay:GetHoldNoteVector()  
-			local tracks = replay:GetTrackVector()  
-			local ncol = GAMESTATE:GetCurrentSteps():GetNumColumns() - 1 --wtf?
-			local middleCol = ncol/2  
-
-			--something something you should always empty tables before initializing again
-			LeftRightWifeAddon.dvtL = {} 
-			LeftRightWifeAddon.dvtR = {} 
-			LeftRightWifeAddon.hvtL = 0
-			LeftRightWifeAddon.hvtR = 0 
-			mineL = 0
-			mineR = 0
-
-			for i, d in ipairs(dvtTmp) do
-				local tp = tvt[i]
-				if tp == "TapNoteType_Tap" or tp == "TapNoteType_HoldHead" or tp == "TapNoteType_Lift" then 
-					if tracks[i] then 
-						if tracks[i] < middleCol then 
-							LeftRightWifeAddon.dvtL[#LeftRightWifeAddon.dvtL + 1] = d
-						elseif tracks[i] > middleCol then
-							LeftRightWifeAddon.dvtR[#LeftRightWifeAddon.dvtR + 1] = d
-						end
-					end
-				elseif tp == "TapNoteType_Mine" then 
-					if tracks[i] then 
-						if tracks[i] < middleCol then 
-							mineL = mineL + 1
-						elseif tracks[i] > middleCol then 
-							mineR = mineR + 1
-						end
-					end
-				end
-			end
-			
-			for i, d in ipairs(hvt) do
-				if d.track < middleCol then
-					LeftRightWifeAddon.hvtL = LeftRightWifeAddon.hvtL + 1
-				elseif d.track > middleCol then
-					LeftRightWifeAddon.hvtR = LeftRightWifeAddon.hvtR + 1
-				end
-			end
-		end
-
 		-- if available, filter out non taps from the deviation list
 		-- (hitting mines directly without filtering would make them appear here)
 		if tvt ~= nil and #tvt > 0 then
@@ -314,67 +284,6 @@ local function scoreBoard(pn, position)
 		if judge > 9 then judge = 9 end
 	end
 	clampJudge()
-
-
-	local function LoadNewJudgeWifeLR(j)
-		if not LeftRightaddonOn then return end
-		local ml = mineL--for some reason the table kills itself unless we load it on a seperate variable ???????????
-		local mr = mineR
-
-		LeftRightWifeAddon.wifetableL = {}
-		LeftRightWifeAddon.wifetableR = {}
-		LeftRightWifeAddon.wifeL = 0
-		LeftRightWifeAddon.wifeR = 0
-
-		for i, d in ipairs(LeftRightWifeAddon.dvtL) do
-			LeftRightWifeAddon.wifetableL[#LeftRightWifeAddon.wifetableL + 1] = wife3(math.abs(d), ms.JudgeScalers[j], 3)
-		end
-
-		for i, d in ipairs(LeftRightWifeAddon.dvtR) do
-			LeftRightWifeAddon.wifetableR[#LeftRightWifeAddon.wifetableR + 1] = wife3(math.abs(d), ms.JudgeScalers[j], 3)
-		end
-
-		if LeftRightWifeAddon.hvtL > 0 then
-			for i = 1, LeftRightWifeAddon.hvtL do 
-				LeftRightWifeAddon.wifetableL[#LeftRightWifeAddon.wifetableL + 1] = -4.5
-			end
-		end
-
-		if LeftRightWifeAddon.hvtR > 0 then
-			for i = 1, LeftRightWifeAddon.hvtR do 
-				LeftRightWifeAddon.wifetableR[#LeftRightWifeAddon.wifetableR + 1] = -4.5
-			end
-		end
-
-		if ml > 0 then
-			for i = 1, ml do 
-				LeftRightWifeAddon.wifetableL[#LeftRightWifeAddon.wifetableL + 1] = -7
-			end
-		end
-
-		if mr > 0 then
-			for i = 1, ml do 
-				LeftRightWifeAddon.wifetableL[#LeftRightWifeAddon.wifetableR + 1]  = -7
-			end
-		end
-
-		local tl = 0
-		local tr = 0
-		for i, k in ipairs(LeftRightWifeAddon.wifetableL) do
-			tl = tl + k 
-		end
-		for i, k in ipairs(LeftRightWifeAddon.wifetableR) do
-			tr = tr + k 
-		end
-		LeftRightWifeAddon.wifeL = tl/(#LeftRightWifeAddon.wifetableL - LeftRightWifeAddon.hvtL - ml)*50 
-		LeftRightWifeAddon.wifeR = tr/(#LeftRightWifeAddon.wifetableR - LeftRightWifeAddon.hvtR - mr)*50 
-
-
-	end
-
-	local function wifeToGradeColor(actor, wife)
-		actor:diffuse(getGradeColor(GetGradeFromPercent(wife/100)))
-	end
 
 	local t = Def.ActorFrame {
 		Name = "ScoreDisplay",
@@ -456,34 +365,13 @@ local function scoreBoard(pn, position)
 				self:xy(frameX - 5, frameY + 5)
 				self:zoomto(frameWidth + 10, 217)
 				self:halign(0):valign(0)
-				self:diffuse(getMainColor("frames"))
-				self:diffusealpha(0.5)
-			end,
-		},
-		Def.Quad {
-			Name = "DisplayHorizontalLine1",
-			InitCommand = function(self)
-				self:xy(frameX, frameY + 30)
-				self:zoomto(frameWidth, 2)
-				self:halign(0)
-				self:diffuse(getMainColor("highlight"))
-				self:diffusealpha(0.5)
-			end,
-		},
-		Def.Quad {
-			Name = "DisplayHorizontalLine2",
-			InitCommand = function(self)
-				self:xy(frameX, frameY + 55)
-				self:zoomto(frameWidth, 2)
-				self:halign(0)
-				self:diffuse(getMainColor("highlight"))
-				self:diffusealpha(0.5)
+				self:diffuse(getMainColor("frames")):diffusealpha(0.7)
 			end,
 		},
 		Def.ActorFrame {
 			Name = "CustomScoringDisplay",
 			InitCommand = function(self)
-				self:xy(frameX - 5, frameY + 5)
+				self:xy(frameX + 70, frameY + 9)
 				self:visible(usingCustomWindows)
 			end,
 			ToggleCustomWindowsMessageCommand = function(self)
@@ -491,8 +379,7 @@ local function scoreBoard(pn, position)
 				usingCustomWindows = not usingCustomWindows
 
 				self:visible(usingCustomWindows)
-				self:GetParent():GetChild("GraphDisplayP1"):visible(not usingCustomWindows)
-				self:GetParent():GetChild("ComboGraphP1"):visible(not usingCustomWindows)
+				self:GetParent():GetChild("WifeDisplay"):visible(not usingCustomWindows)
 				if not usingCustomWindows then
 					unloadCustomWindowConfig()
 					MESSAGEMAN:Broadcast("UnloadedCustomWindow")
@@ -532,47 +419,13 @@ local function scoreBoard(pn, position)
 					MESSAGEMAN:Broadcast("MoveCustomWindowIndex", {direction=1})
 				end
 			end,
-
-			UIElements.QuadButton(1, 1) .. {
-				Name = "BG",
-				InitCommand = function(self)
-					self:zoomto(capWideScale(get43size(235),235), 25)
-					self:halign(0):valign(1)
-					self:diffuse(getMainColor("frames"))
-				    self:diffusealpha(0.5)
-				end,
-				MouseClickCommand = function(self, params)
-					if self:IsVisible() and usingCustomWindows then
-						if params.event ~= "DeviceButton_left mouse button" then
-							moveCustomWindowConfigIndex(1)
-						else
-							moveCustomWindowConfigIndex(-1)
-						end
-						loadCurrentCustomWindowConfig()
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge=judge})
-						lastSnapshot = REPLAYS:GetActiveReplay():GetLastReplaySnapshot()
-						self:GetParent():playcommand("Set")
-						MESSAGEMAN:Broadcast("LoadedCustomWindow")
-					end
-				end,
-			},
-			Def.Quad {
-				Name = "SmallHorizontalLine",
-				InitCommand = function(self)
-					self:xy(0, 0)
-					self:zoomto(capWideScale(get43size(235),235), 2)
-					self:halign(0)
-					self:diffuse(getMainColor("highlight"))
-					self:diffusealpha(0.5)
-				end,
-			},
 			LoadFont("Common Large") .. {
 				Name = "CustomPercent",
 				InitCommand = function(self)
-					self:xy(8, -4)
+					self:xy(0, 16)
 					self:zoom(0.45)
 					self:halign(0):valign(1)
-					self:maxwidth(capWideScale(320, 500))
+					self:maxwidth(500)
 				end,
 				SetCommand = function(self)
 					self:diffuse(getGradeColor(score:GetWifeGrade()))
@@ -595,7 +448,7 @@ local function scoreBoard(pn, position)
 		LoadFont("Common Large") .. {
 			Name = "MSDDisplay",
 			InitCommand = function(self)
-				self:xy(frameX + 3, frameY + 32)
+				self:xy(frameX + 70, frameY + 32)
 				self:zoom(0.5)
 				self:halign(0):valign(0)
 				self:maxwidth(200)
@@ -628,7 +481,7 @@ local function scoreBoard(pn, position)
 		LoadFont("Common Large") .. {
 			Name = "SSRDisplay",
 			InitCommand = function(self)
-				self:xy(frameWidth + frameX - 3, frameY + 32)
+				self:xy(frameWidth + 1, frameY + 32)
 				self:zoom(0.5)
 				self:halign(1):valign(0)
 				self:maxwidth(200)
@@ -648,8 +501,8 @@ local function scoreBoard(pn, position)
 		LoadFont("Common Large") .. {
 			Name = "DifficultyName",
 			InitCommand = function(self)
-				self:xy(frameWidth + frameX - 3, frameY + 7)
-				self:zoom(0.5)
+				self:xy(frameWidth + frameX, frameY + 10)
+				self:zoom(0.3)
 				self:halign(1):valign(0)
 				self:maxwidth(200)
 			end,
@@ -671,7 +524,7 @@ local function scoreBoard(pn, position)
 			UIElements.QuadButton(1, 1) .. {
 				Name = "MouseHoverBG",
 				InitCommand = function(self)
-					self:xy(frameX + 3, frameY + 9)
+					self:xy(frameX + 70, frameY + 9)
 					self:zoomto(capWideScale(320,490)/2.2,20)
 					self:halign(0):valign(0)
 					self:diffusealpha(0)
@@ -696,9 +549,44 @@ local function scoreBoard(pn, position)
 				end,
 			},
 			LoadFont("Common Large") .. {
+				Name = "msdTextExplain",
+			InitCommand = function(self)
+				self:xy(frameX + frameWidth - 170, frameY + 45)
+				self:zoom(0.2)
+				self:settext("MSD")
+			end,
+			},
+			LoadFont("Common Large") .. {
+				Name = "ssrTextExplain",
+			InitCommand = function(self)
+				self:xy(frameX + frameWidth - 20, frameY + 45)
+				self:zoom(0.2)
+				self:settext("SSR")
+			end, 
+			},
+			LoadFont("Common Large") .. {
+				Name = "Grade",
+			InitCommand = function(self)
+				self:xy(frameX + 30, frameY + 30)
+				self:zoom(0.75)
+				self:maxwidth(70)
+				self:settext("")
+			end, 
+			BeginCommand = function(self)
+				self:queuecommand("Set")
+			end,
+			SetCommand = function(self)
+				self:settext(getGradeStrings(graderaw))
+				self:diffuse(getGradeColor(graderaw))
+			end,
+			ScoreChangedMessageCommand = function(self)
+				self:queuecommand("Set")
+			end,
+			},
+			LoadFont("Common Large") .. {
 				Name = "NormalText",
 				InitCommand = function(self)
-					self:xy(frameX + 3, frameY + 9)
+					self:xy(frameX + 70, frameY + 9)
 					self:zoom(0.45)
 					self:halign(0):valign(0)
 					self:maxwidth(capWideScale(320, 500))
@@ -740,11 +628,6 @@ local function scoreBoard(pn, position)
 						self:settextf(
 							"%05.2f%% (%s)", pct, ws .. judge
 						)
-
-						if LeftRightaddonOn then -- addon shenanigans hahahshahahahhahahahahHAHHAHAH
-							judge = judge + 1
-						end
-
 						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
 					elseif params.Name == "NextJudge" and judge < 9 then
 						judge = judge + 1
@@ -756,11 +639,6 @@ local function scoreBoard(pn, position)
 						self:settextf(
 							"%05.2f%% (%s)", pct, ws .. js
 						)
-
-						if LeftRightaddonOn then
-							judge = judge - 1
-						end
-
 						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
 					end
 					if params.Name == "ResetJudge" then
@@ -774,7 +652,7 @@ local function scoreBoard(pn, position)
 			LoadFont("Common Large") ..	{-- high precision rollover
 				Name = "LongerText",
 				InitCommand = function(self)
-					self:xy(frameX + 3, frameY + 9)
+					self:xy(frameX + 70, frameY + 9)
 					self:zoom(0.45)
 					self:halign(0):valign(0)
 					self:maxwidth(capWideScale(320, 500))
@@ -788,7 +666,6 @@ local function scoreBoard(pn, position)
 					local js = judge ~= 9 and judge or "ustice"
 					local rescoretable = getRescoreElements(score)
 					local rescorepercent = getRescoredWife3Judge(3, judge, rescoretable)
-					storedpiss = getRescoredWife3Judge(3, 4, rescoretable)
 					wv = 3 -- this should really only be applicable if we can convert the score
 					local ws = "Wife" .. wv .. " J"
 					self:diffuse(getGradeColor(score:GetWifeGrade()))
@@ -796,7 +673,6 @@ local function scoreBoard(pn, position)
 						"%05.4f%% (%s)",
 						notShit.floor(rescorepercent, 4), ws .. js
 					)
-					MESSAGEMAN:Broadcast("LongerPercentDone")
 				end,
 				ScoreChangedMessageCommand = function(self)
 					self:queuecommand("Set")
@@ -818,11 +694,6 @@ local function scoreBoard(pn, position)
 						self:settextf(
 							"%05.4f%% (%s)", pct, ws .. judge2
 						)
-
-						if LeftRightaddonOn then
-							judge2 = judge2 + 1 
-						end
-
 					elseif params.Name == "NextJudge" and judge2 < 9 then
 						judge2 = judge2 + 1
 						rescorepercent = getRescoredWife3Judge(3, judge2, rescoretable)
@@ -831,369 +702,6 @@ local function scoreBoard(pn, position)
 						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
 						self:settextf(
 							"%05.4f%% (%s)", pct, ws .. js
-						)
-
-						if LeftRightaddonOn then
-							judge2 = judge2 - 1
-						end
-
-					end
-					if params.Name == "ResetJudge" then
-						judge2 = GetTimingDifficulty()
-						self:playcommand("Set")
-					end
-				end,
-			},
-		},
-		Def.ActorFrame {
-			Name = "WifeDisplayLeft",
-			ForceWindowMessageCommand = function(self, params)
-				self:playcommand("Set")
-			end,
-			Def.Quad {
-				Name = "BGWife",
-				InitCommand = function(self)
-					self:diffusealpha(0)
-					self:xy(frameWidth + 25, frameY + 226)
-					self:zoomto(frameWidth / 2 + 10, 56.5)
-					self:halign(1):valign(0)
-				end,
-				BeginCommand = function(self)
-					if LeftRightaddonOn then 
-						self:diffuse(getMainColor("frames")):diffusealpha(0.65)
-					end
-				end,
-			},
-			UIElements.QuadButton(1, 1) .. {
-				Name = "MouseHoverBGLeft",
-				InitCommand = function(self)
-					self:xy(LeftRightWifeAddonPositions.lrX, LeftRightWifeAddonPositions.lrY)
-					self:zoomto(capWideScale(320,490)/2.2,20)
-					self:halign(0):valign(0)
-					self:diffusealpha(0)
-				end,
-				MouseOverCommand = function(self)
-					if self:IsVisible() then
-						self:GetParent():GetChild("NormalTextLeft"):visible(false)
-						self:GetParent():GetChild("LongerTextLeft"):visible(true)
-					end
-				end,
-				MouseOutCommand = function(self)
-					if self:IsVisible() then
-						self:GetParent():GetChild("NormalTextLeft"):visible(true)
-						self:GetParent():GetChild("LongerTextLeft"):visible(false)
-					end
-				end,
-			},
-			LoadFont("Common Large") .. {
-				Name = "NormalTextLeft",
-				InitCommand = function(self)
-					self:xy(LeftRightWifeAddonPositions.lrX, LeftRightWifeAddonPositions.lrY)
-					self:zoom(LeftRightWifeAddonPositions.lrtextSize)
-					self:halign(0):valign(0)
-					self:maxwidth(capWideScale(320, 550))
-					self:visible(true)
-				end,
-				BeginCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				SetCommand = function(self)
-					if not LeftRightaddonOn then 
-						return 
-					end 
-
-					local wv = score:GetWifeVers()
-					local js = judge ~= 9 and judge or "ustice"
-					wv = 3 -- this should really only be applicable if we can convert the score
-					local ws = "Wife" .. wv .. " J"
-					LoadNewJudgeWifeLR(judge)
-					wifeToGradeColor(self, LeftRightWifeAddon.wifeL)
-					if LeftRightWifeAddon.wifeL >= 99.9 then
-						self:settextf(
-							"%05.4f%% (%s) L",
-							notShit.floor(LeftRightWifeAddon.wifeL, 4), ws .. js
-						)
-					else
-						self:settextf(
-							"%05.2f%% (%s) L",
-							notShit.floor(LeftRightWifeAddon.wifeL, 2), ws .. js
-						)
-					end
-				end,
-				ScoreChangedMessageCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				CodeMessageCommand = function(self, params)
-					if usingCustomWindows or LeftRightaddonOn == false then
-						return
-					end
-					local ws = "Wife3" .. " J"
-					if params.Name == "PrevJudge" and judge > 4 then
-						judge = judge - 1
-						clampJudge()
-						LoadNewJudgeWifeLR(judge)
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeL)
-						if LeftRightWifeAddon.wifeL >= 99.9 then
-							self:settextf(
-								"%05.4f%% (%s) L",
-								notShit.floor(LeftRightWifeAddon.wifeL, 4), ws .. judge
-							)
-						else
-							self:settextf(
-								"%05.2f%% (%s) L",
-								notShit.floor(LeftRightWifeAddon.wifeL, 2), ws .. judge
-							)
-						end
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
-						judge = judge + 1
-					elseif params.Name == "NextJudge" and judge < 9 then
-						judge = judge + 1
-						clampJudge()
-						LoadNewJudgeWifeLR(judge)
-						local js = judge ~= 9 and judge or "ustice"
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeL)
-						if LeftRightWifeAddon.wifeL >= 99.9 then
-							self:settextf(
-								"%05.4f%% (%s) L",
-								notShit.floor(LeftRightWifeAddon.wifeL, 4), ws .. js
-							)
-						else
-							self:settextf(
-								"%05.2f%% (%s) L",
-								notShit.floor(LeftRightWifeAddon.wifeL, 2), ws .. js
-							)
-						end
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
-						judge = judge - 1
-					end
-					if params.Name == "ResetJudge" then
-						judge = GetTimingDifficulty()
-						clampJudge()
-						self:playcommand("Set")
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
-					end
-				end,
-			},
-			LoadFont("Common Large") ..	{-- high precision rollover
-				Name = "LongerTextLeft",
-				InitCommand = function(self)
-					self:xy(LeftRightWifeAddonPositions.lrX, LeftRightWifeAddonPositions.lrY)
-					self:zoom(LeftRightWifeAddonPositions.lrtextSize)
-					self:halign(0):valign(0)
-					self:maxwidth(capWideScale(320, 550))
-					self:visible(false)
-				end,
-				BeginCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				SetCommand = function(self)
-					if not LeftRightaddonOn then return end 
-
-					local wv = score:GetWifeVers()
-					local js = judge ~= 9 and judge or "ustice"
-					wv = 3 -- this should really only be applicable if we can convert the score
-					local ws = "Wife" .. wv .. " J"
-					LoadNewJudgeWifeLR(judge)
-					wifeToGradeColor(self, LeftRightWifeAddon.wifeL)
-					self:settextf(
-						"%05.4f%% (%s) L",
-						notShit.floor(LeftRightWifeAddon.wifeL, 4), ws .. js
-					)
-				end,
-				ScoreChangedMessageCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				CodeMessageCommand = function(self, params)
-					if usingCustomWindows or LeftRightaddonOn == false then
-						return
-					end
-					local wv = score:GetWifeVers()
-					local ws = "Wife3" .. " J"
-					if params.Name == "PrevJudge" and judge2 > 4 then
-						judge2 = judge2 - 1
-						LoadNewJudgeWifeLR(judge2)
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeL)
-						self:settextf(
-							"%05.4f%% (%s) L", notShit.floor(LeftRightWifeAddon.wifeL, 4), ws .. judge2
-						)
-						judge2 = judge2 + 1
-					elseif params.Name == "NextJudge" and judge2 < 9 then
-						judge2 = judge2 + 1
-						LoadNewJudgeWifeLR(judge2)
-						local js = judge2 ~= 9 and judge2 or "ustice"
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeL)
-						self:settextf(
-							"%05.4f%% (%s) L", notShit.floor(LeftRightWifeAddon.wifeL, 4), ws .. js
-						)
-						judge2 = judge2 - 1
-					end
-					if params.Name == "ResetJudge" then
-						judge2 = GetTimingDifficulty()
-						self:playcommand("Set")
-					end
-				end,
-			},
-		},
-		Def.ActorFrame {
-			Name = "WifeDisplayRight",
-			ForceWindowMessageCommand = function(self, params)
-				self:playcommand("Set")
-			end,
-			UIElements.QuadButton(1, 1) .. {
-				Name = "MouseHoverBGRight",
-				InitCommand = function(self)
-					self:xy(LeftRightWifeAddonPositions.lrX, LeftRightWifeAddonPositions.lrY + 20)
-					self:zoomto(capWideScale(320,490)/2.2,20)
-					self:halign(0):valign(0)
-					self:diffusealpha(0)
-				end,
-				MouseOverCommand = function(self)
-					if self:IsVisible() then
-						self:GetParent():GetChild("NormalTextRight"):visible(false)
-						self:GetParent():GetChild("LongerTextRight"):visible(true)
-					end
-				end,
-				MouseOutCommand = function(self)
-					if self:IsVisible() then
-						self:GetParent():GetChild("NormalTextRight"):visible(true)
-						self:GetParent():GetChild("LongerTextRight"):visible(false)
-					end
-				end,
-			},
-			LoadFont("Common Large") .. {
-				Name = "NormalTextRight",
-				InitCommand = function(self)
-					self:xy(LeftRightWifeAddonPositions.lrX, LeftRightWifeAddonPositions.lrY + 20)
-					self:zoom(LeftRightWifeAddonPositions.lrtextSize)
-					self:halign(0):valign(0)
-					self:maxwidth(capWideScale(320, 550))
-					self:visible(true)
-				end,
-				BeginCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				SetCommand = function(self)
-					if not LeftRightaddonOn then return end 
-
-					local wv = score:GetWifeVers()
-					local js = judge ~= 9 and judge or "ustice"
-					wv = 3 -- this should really only be applicable if we can convert the score
-					local ws = "Wife" .. wv .. " J"
-					LoadNewJudgeWifeLR(judge)
-					wifeToGradeColor(self, LeftRightWifeAddon.wifeR)
-					if LeftRightWifeAddon.wifeR >= 99.9 then
-						self:settextf(
-							"%05.4f%% (%s) R",
-							notShit.floor(LeftRightWifeAddon.wifeR, 4), ws .. js
-						)
-					else
-						self:settextf(
-							"%05.2f%% (%s) R",
-							notShit.floor(LeftRightWifeAddon.wifeR, 2), ws .. js
-						)
-					end
-				end,
-				ScoreChangedMessageCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				CodeMessageCommand = function(self, params)
-					if usingCustomWindows or LeftRightaddonOn == false then
-						return
-					end
-					local ws = "Wife3" .. " J"
-					if params.Name == "PrevJudge" and judge > 4 then
-						judge = judge - 1
-						clampJudge()
-						LoadNewJudgeWifeLR(judge)
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeR)
-						if LeftRightWifeAddon.wifeR >= 99.9 then
-							self:settextf(
-								"%05.4f%% (%s) R",
-								notShit.floor(LeftRightWifeAddon.wifeR, 4), ws .. judge
-							)
-						else
-							self:settextf(
-								"%05.2f%% (%s) R",
-								notShit.floor(LeftRightWifeAddon.wifeR, 2), ws .. judge
-							)
-						end
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
-					elseif params.Name == "NextJudge" and judge < 9 then
-						judge = judge + 1
-						clampJudge()
-						LoadNewJudgeWifeLR(judge)
-						local js = judge ~= 9 and judge or "ustice"
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeR)
-						if LeftRightWifeAddon.wifeR >= 99.5 then
-							self:settextf(
-								"%05.4f%% (%s) R",
-								notShit.floor(LeftRightWifeAddon.wifeR, 4), ws .. js
-							)
-						else
-							self:settextf(
-								"%05.2f%% (%s) R",
-								notShit.floor(LeftRightWifeAddon.wifeR, 2), ws .. js
-							)
-						end
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
-					end
-					if params.Name == "ResetJudge" then
-						judge = GetTimingDifficulty()
-						clampJudge()
-						self:playcommand("Set")
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge = judge})
-					end
-				end,
-			},
-			LoadFont("Common Large") ..	{-- high precision rollover
-				Name = "LongerTextRight",
-				InitCommand = function(self)
-					self:xy(LeftRightWifeAddonPositions.lrX, LeftRightWifeAddonPositions.lrY + 20)
-					self:zoom(LeftRightWifeAddonPositions.lrtextSize)
-					self:halign(0):valign(0)
-					self:maxwidth(capWideScale(320, 550))
-					self:visible(false)
-				end,
-				BeginCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				SetCommand = function(self)
-					if not LeftRightaddonOn then return end 
-
-					local wv = score:GetWifeVers()
-					local js = judge ~= 9 and judge or "ustice"
-					wv = 3 -- this should really only be applicable if we can convert the score
-					local ws = "Wife" .. wv .. " J"
-					LoadNewJudgeWifeLR(judge)
-					wifeToGradeColor(self, LeftRightWifeAddon.wifeR)
-					self:settextf(
-						"%05.4f%% (%s) R",
-						notShit.floor(LeftRightWifeAddon.wifeR, 4), ws .. js
-					)
-				end,
-				ScoreChangedMessageCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				CodeMessageCommand = function(self, params)
-					if usingCustomWindows or LeftRightaddonOn == false then
-						return
-					end
-					local wv = score:GetWifeVers()
-					local ws = "Wife3" .. " J"
-					if params.Name == "PrevJudge" and judge2 > 4 then
-						judge2 = judge2 - 1
-						LoadNewJudgeWifeLR(judge2)
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeR)
-						self:settextf(
-							"%05.4f%% (%s) R", notShit.floor(LeftRightWifeAddon.wifeR, 4), ws .. judge2
-						)
-					elseif params.Name == "NextJudge" and judge2 < 9 then
-						judge2 = judge2 + 1
-						LoadNewJudgeWifeLR(judge2)
-						local js = judge2 ~= 9 and judge2 or "ustice"
-						wifeToGradeColor(self, LeftRightWifeAddon.wifeR)
-						self:settextf(
-							"%05.4f%% (%s) R", notShit.floor(LeftRightWifeAddon.wifeR, 4), ws .. js
 						)
 					end
 					if params.Name == "ResetJudge" then
@@ -1639,66 +1147,6 @@ local function scoreBoard(pn, position)
 		},
 	}
 
-	local radars = {"Holds", "Mines", "Rolls", "Lifts", "Fakes"}
-	local radars_translated = {
-		Holds = THEME:GetString("RadarCategory", "Holds"),
-		Mines = THEME:GetString("RadarCategory", "Mines"),
-		Rolls = THEME:GetString("RadarCategory", "Rolls"),
-		Lifts = THEME:GetString("RadarCategory", "Lifts"),
-		Fakes = THEME:GetString("RadarCategory", "Fakes")
-	}
-	
-	local function radarEntry(i)
-		return Def.ActorFrame {
-			Name = "Radar"..radars[i],
-
-			LoadFont("Common Normal") .. {
-				InitCommand = function(self)
-					self:xy(frameX, frameY + 224 + 10 * i)
-					self:zoom(0.4)
-					self:halign(0)
-					self:settext(radars_translated[radars[i]])
-				end,
-			},
-			LoadFont("Common Normal") .. {
-				InitCommand = function(self)
-					self:xy(frameWidth / 2, frameY + 224 + 10 * i)
-					self:zoom(0.4)
-					self:halign(1)
-				end,
-				BeginCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				SetCommand = function(self)
-					self:settextf(
-						"%03d/%03d",
-						gatherRadarValue("RadarCategory_" .. radars[i], score),
-						score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
-					)
-				end,
-				ScoreChangedMessageCommand = function(self)
-					self:queuecommand("Set")
-				end,
-			},
-		}
-	end
-	local rb = Def.ActorFrame {
-		Name = "RadarContainer",
-		Def.Quad {
-			Name = "BG",
-			InitCommand = function(self)
-				self:xy(frameX - 5, frameY + 226):zoomto(frameWidth / 2 - 10, 56.5)
-				self:halign(0):valign(0)
-				self:diffuse(getMainColor("frames"))
-				self:diffusealpha(0.5)
-			end,
-		},
-	}
-	for i = 1, #radars do
-		rb[#rb+1] = radarEntry(i)
-	end
-	t[#t+1] = rb
-
 	local function scoreStatistics(score)
 		local replay = usingCustomWindows and REPLAYS:GetActiveReplay() or score:GetReplay()
 		replay:LoadAllData()
@@ -1818,21 +1266,25 @@ local function scoreBoard(pn, position)
 			cbr,
 			cbm
 		}
+
+		local frameWidthStat = SCREEN_CENTER_X 
+		local framexstat = frameX + 15
+		local frameYStat = 190
+
 		-- if theres a middle lane, display its cbs too
 		local lines = #statNames
 		local tzoom = lines == 5 and 0.3 or 0.3
 		local ySpacing = lines == 5 and 10 or 8.5
+		local xSpacing = 76
 		local function statsLine(i)
 			return Def.ActorFrame {
 				Name = "StatLine"..statNames[i],
 				LoadFont("Common Normal") .. {
 					Name = "StatText",
 					InitCommand = function(self)
-						self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + 255 + ySpacing)
+						self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + (170) + ySpacing)
 						self:zoom(tzoom)
-						self:halign(0)
 						self:settext(statNames[i])
-						self:diffusealpha(0.7)
 					end,
 				},
 				LoadFont("Common Normal") .. {
@@ -1843,14 +1295,14 @@ local function scoreBoard(pn, position)
 					SetCommand = function(self, params)
 						local statValues = scoreStatistics(params ~= nil and params.score or score)
 						if i < 4 then
-							self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + 265 + ySpacing)
-							self:zoom(tzoom * 1.1)
-							self:halign(0)
+							self:xy(framexstat + capWideScale(get43size(130), 350) + 70 * i, frameY + 185 + ySpacing)
+							self:zoom(tzoom * 1.39)
+							self:halign(1)
 							self:settextf("%5.2fms", statValues[i])
 						else
-							self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + 265 + ySpacing)
-							self:zoom(tzoom * 1.3)
-							self:halign(0)
+							self:xy(framexstat + capWideScale(get43size(130), 350) + 70 * i, frameY + 185 + ySpacing)
+							self:zoom(tzoom * 1.5)
+							self:halign(1)
 
 							if i ~= 6 then 
 								self:settext(statValues[i])
@@ -1890,64 +1342,6 @@ local function scoreBoard(pn, position)
 		t[#t+1] = sl
 	end
 
-	
-	-- life graph
-	local function GraphDisplay()
-		return Def.ActorFrame {
-			Def.GraphDisplay {
-				InitCommand = function(self)
-					self:Load("GraphDisplay")
-				end,
-				BeginCommand = function(self)
-					local ss = SCREENMAN:GetTopScreen():GetStageStats()
-					self:Set(ss, ss:GetPlayerStageStats())
-					self:diffusealpha(0.7)
-					self:GetChild("Line"):diffusealpha(0)
-					self:zoom(0.8)
-					self:xy(-22, 8)
-				end,
-				ScoreChangedMessageCommand = function(self)
-					if score and judge then
-						self:playcommand("RecalculateGraphs", {judge=judge})
-					end
-				end,
-				RecalculateGraphsMessageCommand = function(self, params)
-					-- called by the end of a codemessagecommand somewhere else
-					if not ms.JudgeScalers[params.judge] then return end
-					local success = SCREENMAN:GetTopScreen():RescoreReplay(SCREENMAN:GetTopScreen():GetStageStats():GetPlayerStageStats(), ms.JudgeScalers[params.judge], score, usingCustomWindows and currentCustomWindowConfigUsesOldestNoteFirst())
-					if not success then ms.ok("Failed to recalculate score for some reason...") return end
-					self:playcommand("Begin")
-					MESSAGEMAN:Broadcast("SetComboGraph")
-				end,
-			},
-		}
-	end
-
-	-- combo graph
-	local function ComboGraph()
-		return Def.ActorFrame {
-			Def.ComboGraph {
-				InitCommand = function(self)
-					self:Load("ComboGraph")
-				end,
-				BeginCommand = function(self)
-					local ss = SCREENMAN:GetTopScreen():GetStageStats()
-					self:Set(ss, ss:GetPlayerStageStats())
-					self:zoom(0.8)
-					self:xy(-22, -2)
-				end,
-				SetComboGraphMessageCommand = function(self)
-					self:Clear()
-					self:Load("ComboGraph")
-					self:playcommand("Begin")
-				end,
-			},
-		}
-	end
-
-	t[#t + 1] = StandardDecorationFromTable("GraphDisplay" .. ToEnumShortString(PLAYER_1), GraphDisplay())
-	t[#t + 1] = StandardDecorationFromTable("ComboGraph" .. ToEnumShortString(PLAYER_1), ComboGraph())
-
 	return t
 end
 
@@ -1984,7 +1378,11 @@ t[#t+1] = Def.Actor {
     end
 }
 
-t[#t + 1] = LoadActor("manipfactor")
+
+if idontknowhowtojumptrill then
+	t[#t + 1] = LoadActor("manipfactor")
+end
+
 updateDiscordStatus(true)
 
 return t

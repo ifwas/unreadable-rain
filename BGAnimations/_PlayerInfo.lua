@@ -13,6 +13,7 @@ local noteCount = 0
 local numfaves = 0
 local AvatarX = 1 + retarDED * -1
 local AvatarY = SCREEN_HEIGHT - 50
+
 local actualAvatarY = SCREEN_HEIGHT - retarDED
 local playerRating = 0
 local uploadbarwidth = 100
@@ -163,6 +164,9 @@ t[#t + 1] = Def.Actor {
 t[#t + 1] = Def.ActorFrame {
 	Name = "Avatar" .. PLAYER_1,
 	BeginCommand = function(self)
+		if SCREENMAN:GetTopScreen():GetName() == "ScreenNetEvaluation" or SCREENMAN:GetTopScreen():GetName() == "ScreenEvaluationNormal" then 
+			self:y(actualAvatarY * -1)
+		end
 		self:queuecommand("Set")
 	end,
 	SetCommand = function(self)
@@ -400,52 +404,6 @@ t[#t + 1] = Def.ActorFrame {
 					SetTimingDifficulty(scale)
 					self:queuecommand("Set")
 				end
-			end
-		end
-	},
-	UIElements.TextToolTip(1, 1, "Common Normal") .. {
-		Name = "Version",
-		InitCommand = function(self)
-			self:xy(SCREEN_WIDTH - 3, AvatarY + 33):halign(1):zoom(0.42):diffuse(ButtonColor)
-		end,
-		BeginCommand = function(self)
-			self:queuecommand("Set")
-		end,
-		SetCommand = function(self)
-			self:settext(GAMESTATE:GetEtternaVersion())
-		end,
-		MouseOverCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseOutCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseDownCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" then
-				DLMAN:ShowProjectReleases()
-			end
-		end
-	},
-	UIElements.TextToolTip(1, 1, "Common Normal") .. {
-		Name = "refreshbutton",
-		InitCommand = function(self)
-			self:xy(SCREEN_WIDTH - 3, AvatarY + 44):halign(1):zoom(0.35):diffuse(ButtonColor)
-		end,
-		BeginCommand = function(self)
-			self:queuecommand("Set")
-		end,
-		SetCommand = function(self)
-			self:settextf(translated_info["RefreshSongs"])
-		end,
-		MouseOverCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseOutCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseDownCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" then
-				SONGMAN:DifferentialReload()
 			end
 		end
 	},

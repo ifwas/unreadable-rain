@@ -1,31 +1,20 @@
 --Version: 09.16.24 19:34
---For Til Death
+--unreadable-rain (reimuboobs) theme fork
+--credits to MaidOfFire
+
 local t = Def.ActorFrame {}
-
-local enabled = themeConfig:get_data().global.ManipFactor
-
-if not enabled then 
-    return t
-end
 
 local score = SCOREMAN:GetMostRecentScore()
 if not score then
     score = SCOREMAN:GetTempReplayScore()
 end
 
-local aspectRatio = GetScreenAspectRatio()
-
 local mfDisplayX
 local mfDisplayY
-local mfDisplayZoom = 0.25
+local mfDisplayZoom = 0.27
 
-if aspectRatio < 1.6 then
-    mfDisplayX = SCREEN_RIGHT - 30
-    mfDisplayY = SCREEN_CENTER_Y + 66
-else
-    mfDisplayX = SCREEN_LEFT + 42
-    mfDisplayY = 350
-end
+mfDisplayX = SCREEN_RIGHT - 28
+mfDisplayY = SCREEN_CENTER_Y + 190
 
 local td = {} -- chart timing data
 local dvt = {} -- offset vector
@@ -331,50 +320,24 @@ end
 
 -- Manip factor display
 t[#t + 1] = Def.ActorFrame {
-    -- First Text Element (Either "MF" or "MF:")
     UIElements.TextToolTip(1, 1, "Common Large") .. {
-        Name = "MFText",
         InitCommand = function(self)
-            self:xy(mfDisplayX, mfDisplayY)
+            self:xy(mfDisplayX + 3, mfDisplayY):halign(0)
             self:zoom(mfDisplayZoom)
-            if aspectRatio < 1.6 then
-                -- In aspect ratio less than 1.6, "number% MF"
-                self:addx(3)
-                self:halign(0)
-                self:settext("MF")
-            else
-                -- In aspect ratio greater or equal to 1.6, "MF: number%"
-                self:halign(1)
-                self:settext("MF:")
-            end
+            self:settext("MF")
         end,
         MouseOverCommand = function(self)
-            local mfd = self:GetParent():GetChild("ManipFactor")
-            if aspectRatio < 1.6 then
-                mfd:GetParent():GetChild("ManipFactor"):settextf("(L: %2.1f%% R: %2.1f%%) %2.1f%%", mf[2] * 100, mf[3] * 100, mf[1] * 100)
-            else
-                mfd:GetParent():GetChild("ManipFactor"):settextf("%2.1f%% (L: %2.1f%% R: %2.1f%%)", mf[1] * 100, mf[2] * 100, mf[3] * 100)
-            end
+            self:GetParent():GetChild("ManipFactor"):settextf("(L: %2.1f%% R: %2.1f%%) %2.1f%%", mf[2] * 100, mf[3] * 100, mf[1] * 100)
         end,
         MouseOutCommand = function(self)
             self:GetParent():GetChild("ManipFactor"):settextf("%2.1f%%", mf[1] * 100)
         end
     },
-    -- Second Text Element (ManipFactor Value)
     UIElements.TextToolTip(1, 1, "Common Large") .. {
         Name = "ManipFactor",
         InitCommand = function(self)
-            self:xy(mfDisplayX, mfDisplayY)
+            self:xy(mfDisplayX, mfDisplayY):halign(1)
             self:zoom(mfDisplayZoom)
-            if aspectRatio < 1.6 then
-                -- Display "number% MF", move text more to the right
-                self:halign(1)
-            else
-                -- Display "MF: number%"
-                self:addx(3)
-                self:halign(0)
-            end
-            self:maxwidth(480)
             self:queuecommand("Set")
         end,
         GetScoreMessageCommand = function(self, params)
@@ -386,7 +349,7 @@ t[#t + 1] = Def.ActorFrame {
         SetCommand = function(self)
             -- Get replay data
             local replay
-            if score["GetReplay"] == nil then -- for better compatibility
+            if score["GetReplay"] == nil then  -- for better compatibility
                 replay = score
             else
                 replay = score:GetReplay()
@@ -409,11 +372,7 @@ t[#t + 1] = Def.ActorFrame {
             self:settextf("%2.1f%%", mf[1] * 100)
         end,
         MouseOverCommand = function(self)
-            if aspectRatio < 1.6 then
-                self:settextf("(L: %2.1f%% R: %2.1f%%) %2.1f%%", mf[2] * 100, mf[3] * 100, mf[1] * 100)
-            else
-                self:settextf("%2.1f%% (L: %2.1f%% R: %2.1f%%)", mf[1] * 100, mf[2] * 100, mf[3] * 100)
-            end
+            self:settextf("(L: %2.1f%% R: %2.1f%%) %2.1f%%", mf[2] * 100, mf[3] * 100, mf[1] * 100)
         end,
         MouseOutCommand = function(self)
             self:settextf("%2.1f%%", mf[1] * 100)

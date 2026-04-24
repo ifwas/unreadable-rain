@@ -96,7 +96,7 @@ local t = Def.ActorFrame {
 		end,
 		MouseDownCommand = function(self, params)
 			if params.event == "DeviceButton_left mouse button" then
-				SCREENMAN:GetTopScreen():SetSampleMusicPosition(0 * musicratio)
+				SCREENMAN:GetTopScreen():SetSampleMusicPosition(0)
 			end
 		end
 	},

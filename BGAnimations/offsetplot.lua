@@ -480,10 +480,10 @@ o[#o + 1] = LoadFont("Common Normal") .. {
 	JudgeDisplayChangedMessageCommand = function(self)
 		local yyyyyyyyyyyyyyyyyyyy
 		if SCREENMAN:GetTopScreen():GetName() == "ScreenNetEvaluation" or SCREENMAN:GetTopScreen():GetName() == "ScreenEvaluationNormal" then 
-			self:xy(158, plotHeight / 2 + 32):zoom(textzoom):halign(0):valign(1)
+			self:xy(176, plotHeight / 2 + 32):zoom(textzoom + 0.05):halign(0):valign(1)
 			yyyyyyyyyyyyyyyyyyyy = plotHeight / 2 + 6
 		else
-			self:xy(0, plotHeight / 2 - 2):zoom(textzoom):halign(0.5):valign(1)
+			self:xy(0, plotHeight / 2 - 2):zoom(textzoom + 0.05):halign(0.5):valign(1)
 			yyyyyyyyyyyyyyyyyyyy = plotHeight / 2 - 2
 		end
 
