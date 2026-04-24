@@ -172,6 +172,7 @@ t[#t+1] = Def.ActorFrame {
 			local ratestr = getRateString(rate)
 			if ratestr == "1x" then
 				self:GetParent():y(songInfoY - 30)
+				self:GetParent():GetChild("Subtitle"):y(SCREEN_BOTTOM - 27) --oopsie
 				self:settext("")
 			else
 				self:settext(ratestr)
@@ -181,8 +182,8 @@ t[#t+1] = Def.ActorFrame {
 	LoadFont("Common Large") .. {
 		Name = "Subtitle",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X + capWideScale(get43size(150),0), SCREEN_BOTTOM - 13)
-			self:zoom(0.25)
+			self:xy(SCREEN_CENTER_X + capWideScale(get43size(150),0), SCREEN_BOTTOM - 9):valign(1)
+			self:zoom(0.28)
 			self:maxwidth(capWideScale(500 / 0.25, 500 / 0.25))
 			self:diffuse(getMainColor("positive"))
 		end,
@@ -1203,6 +1204,70 @@ local function scoreBoard(pn, position)
 		}
 	end
 
+	local radars = {"Mines"}
+	local radars_translated = {
+		Mines = "Mines Hitted: ",
+	}
+	
+	local function radarEntry(i)
+		return Def.ActorFrame {
+			Name = "Radar"..radars[i],
+
+			LoadFont("Common Normal") .. {
+				InitCommand = function(self)
+					self:xy(frameX, frameY + 200 + 10 * i)
+					self:zoom(0.4)
+					self:halign(0)
+					self:settext(radars_translated[radars[i]])
+				end,
+				BeginCommand = function(self)
+					self:queuecommand("Set")
+				end,
+				SetCommand = function(self)
+					self:settext(radars_translated[radars[i]])
+					local totalChart = score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
+
+					if totalChart == 0 then 
+						self:settext("")
+						return
+					end
+				end
+			},
+			LoadFont("Common Normal") .. {
+				InitCommand = function(self)
+					self:xy((frameWidth / 2) - 20 , frameY + 200 + 10 * i)
+					self:zoom(0.4)
+					self:halign(1)
+				end,
+				BeginCommand = function(self)
+					self:queuecommand("Set")
+				end,
+				SetCommand = function(self)
+					local userHit = gatherRadarValue("RadarCategory_" .. radars[i], score)
+					local totalChart = score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
+
+					if totalChart == 0 then 
+						self:settext("")
+						return 
+					end
+
+					local total = totalChart - userHit
+					self:settext(total .. " " .. radars[i])
+				end,
+				ScoreChangedMessageCommand = function(self)
+					self:queuecommand("Set")
+				end,
+			},
+		}
+	end
+	local rb = Def.ActorFrame {
+		Name = "RadarContainer",
+	}
+	for i = 1, #radars do
+		rb[#rb+1] = radarEntry(i)
+	end
+	t[#t+1] = rb
+
 	-- stats stuff
 	local replay = score:GetReplay()
 	replay:LoadAllData()
@@ -1282,7 +1347,7 @@ local function scoreBoard(pn, position)
 				LoadFont("Common Normal") .. {
 					Name = "StatText",
 					InitCommand = function(self)
-						self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + (170) + ySpacing)
+						self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + (174) + ySpacing)
 						self:zoom(tzoom)
 						self:settext(statNames[i])
 					end,
