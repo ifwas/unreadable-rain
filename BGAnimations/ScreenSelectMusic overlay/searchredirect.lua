@@ -94,8 +94,18 @@ local t = Def.ActorFrame{
         if getTabIndex() == indexSearch then 
             resetTabIndex(0)
             MESSAGEMAN:Broadcast("TabChanged", {from = indexSearch, to = 0})
+            MESSAGEMAN:Broadcast("RefreshSearchResults")
             MESSAGEMAN:Broadcast("EndingSearch")
         end
+    end,
+    SearchUpdateAuthorSimMessageCommand = function(self)
+        local auth = GAMESTATE:GetCurrentSong():GetOrTryAtLeastToGetSimfileAuthor() --considering wifetwirl already did the necessary checks then it is not needed to do the edge cases here
+        setLastSearchFromCanceledSearchLastMinute(searchstring)
+        searchstring = "author=" .. auth 
+        whee:SongSearch(searchstring)
+        self:queuecommand("Set")
+        MESSAGEMAN:Broadcast("UpdateString")
+        MESSAGEMAN:Broadcast("EndingSearch")
     end,
     UIElements.QuadButton(1,1) .. {
         InitCommand = function(self)

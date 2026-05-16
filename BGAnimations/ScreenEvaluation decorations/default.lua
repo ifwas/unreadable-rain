@@ -1407,6 +1407,64 @@ local function scoreBoard(pn, position)
 		t[#t+1] = sl
 	end
 
+		-- life graph
+	local function GraphDisplay()
+		return Def.ActorFrame {
+			Def.GraphDisplay {
+				InitCommand = function(self)
+					self:Load("GraphDisplay")
+				end,
+				BeginCommand = function(self)
+					local ss = SCREENMAN:GetTopScreen():GetStageStats()
+					self:Set(ss, ss:GetPlayerStageStats())
+					self:diffusealpha(0)
+					self:GetChild("Line"):diffusealpha(0)
+					self:zoom(0.8)
+					self:xy(-22, 8)
+				end,
+				ScoreChangedMessageCommand = function(self)
+					if score and judge then
+						self:playcommand("RecalculateGraphs", {judge=judge})
+					end
+				end,
+				RecalculateGraphsMessageCommand = function(self, params)
+					-- called by the end of a codemessagecommand somewhere else
+					if not ms.JudgeScalers[params.judge] then return end
+					local success = SCREENMAN:GetTopScreen():RescoreReplay(SCREENMAN:GetTopScreen():GetStageStats():GetPlayerStageStats(), ms.JudgeScalers[params.judge], score, usingCustomWindows and currentCustomWindowConfigUsesOldestNoteFirst())
+					if not success then ms.ok("Failed to recalculate score for some reason...") return end
+					self:playcommand("Begin")
+					MESSAGEMAN:Broadcast("SetComboGraph")
+				end,
+			},
+		}
+	end
+
+	-- combo graph
+	local function ComboGraph()
+		return Def.ActorFrame {
+			Def.ComboGraph {
+				InitCommand = function(self)
+					self:Load("ComboGraph")
+				end,
+				BeginCommand = function(self)
+					self:diffusealpha(0)
+					local ss = SCREENMAN:GetTopScreen():GetStageStats()
+					self:Set(ss, ss:GetPlayerStageStats())
+					self:zoom(0.8)
+					self:xy(-22, -2)
+				end,
+				SetComboGraphMessageCommand = function(self)
+					self:Clear()
+					self:Load("ComboGraph")
+					self:playcommand("Begin")
+				end,
+			},
+		}
+	end
+
+	t[#t + 1] = StandardDecorationFromTable("GraphDisplay" .. ToEnumShortString(PLAYER_1), GraphDisplay())
+	t[#t + 1] = StandardDecorationFromTable("ComboGraph" .. ToEnumShortString(PLAYER_1), ComboGraph())
+
 	return t
 end
 

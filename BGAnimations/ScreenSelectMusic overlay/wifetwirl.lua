@@ -446,6 +446,14 @@ t[#t + 1] = UIElements.SpriteButton(1, 1, nil) .. {
 	MouseOutCommand = function(self)
 		TOOLTIP:Hide()
 	end,
+	MouseDownCommand = function(self, params)
+		if song and GAMESTATE:GetCurrentSong():HasCDTitle() ~= nil and params.event == "DeviceButton_left mouse button" then
+			local auth = GAMESTATE:GetCurrentSong():GetOrTryAtLeastToGetSimfileAuthor()
+			if auth and #auth > 0 and auth ~= "Author Unknown" then
+				MESSAGEMAN:Broadcast("SearchUpdateAuthorSim")
+			end
+		end
+	end,
 }
 
 -- Music Rate Display
