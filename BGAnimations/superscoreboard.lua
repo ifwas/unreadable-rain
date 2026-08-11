@@ -402,7 +402,7 @@ local function makeScoreDisplay(i)
 				local greats = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W3")
 				local goods = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W4")
 				local boo = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W5")
-				local miss = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W5")
+				local miss = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_Miss")
 				local combo = scoretable[i + ind]:GetMaxCombo()
 
 				self:settextf("%d / %d / %d / %d / %d / %d (%dx)", marv, perfects, greats, goods, boo, miss, combo)
