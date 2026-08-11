@@ -1496,7 +1496,7 @@ t[#t+1] = Def.Actor {
             SOUND:StopMusic()
             SOUND:PlayMusicPart(randomsel, 0, 1000)
         else
-            ms.ok("No music found")
+            --ms.ok("No music found")
         end
     end
 }
