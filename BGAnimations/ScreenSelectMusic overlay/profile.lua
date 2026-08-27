@@ -947,11 +947,11 @@ end
 local function percentButton()
 	local t = Def.ActorFrame {
 		InitCommand = function(self)
-			self:xy(rankingX + 60, - 30):valign(1)
+			self:xy(-101, 140):valign(1)
 		end,
 		UIElements.QuadButton(1, 1) .. {
 			InitCommand = function(self)
-				self:zoomto(rankingTitleSpacing, 26):diffuse(getMainColor("frames")):diffusealpha(0.2)
+				self:zoomto(196, 26):diffuse(color("#1f1f1fff")):diffusealpha(0.2)
 			end,
 			SetCommand = function(self)
 				if percentactive then
@@ -993,10 +993,10 @@ local function percentButton()
 		LoadFont("Common Large") .. {
 			Name = "PercentButtonTxt",
 			InitCommand = function(self)
-				self:addy(-1):diffuse(getMainColor("positive")):maxwidth(rankingTitleSpacing * 2):zoom(0.42)
+				self:addy(-1):diffuse(getMainColor("positive")):zoom(0.35)
 			end,
 			BeginCommand = function(self)
-				self:settext(translated_info["Percent"])
+				self:settext("Percent")
 			end
 		}
 	}
@@ -1358,9 +1358,6 @@ local profilebuttons = Def.ActorFrame {
 
 
 local prof = Def.ActorFrame {
-	InitCommand = function(self)
-		self:x(60)
-	end,
 	ProfileTabOnMessageCommand = function(self)
 		self:finishtweening()
 	end,
