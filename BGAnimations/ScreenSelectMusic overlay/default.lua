@@ -97,6 +97,7 @@ t[#t + 1] = LoadActor("currentsort")
 t[#t + 1] = LoadActor("searchredirect")
 
 --test button
+--[[
 t[#t + 1] = UIElements.TextToolTip(1, 1, "Common Large") .. {
 	Name="TestEventMouseButton",
 	InitCommand = function(self)
@@ -117,6 +118,7 @@ t[#t + 1] = UIElements.TextToolTip(1, 1, "Common Large") .. {
 		end
 	end
 }
+]]
 
 local prevplayerops = "Main"
 
@@ -184,7 +186,6 @@ t[#t + 1] = LoadActor("../_cursor")
 t[#t + 1] = LoadActor("../_halppls")
 
 collectgarbage()
-updateDiscordStatusForMenus()
 updateNowPlaying()
 
 return t

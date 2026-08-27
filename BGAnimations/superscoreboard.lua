@@ -29,7 +29,7 @@ local c2x = c1x + (tzoom * 7 * adjx) -- guesswork adjustment for epxected text l
 local c5x = dwidth - 4 -- right aligned cols
 local c4x = c5x - adjx - (tzoom * 3 * adjx) -- right aligned cols
 local c3x = c4x - adjx - (tzoom * 10 * adjx) -- right aligned cols
-local headeroff = packspaceY / 2
+local headeroff = (packspaceY / 2) - 10
 local row2yoff = 1
 local moving
 local cheese
@@ -39,7 +39,30 @@ local yup = 16
 local yup1 = 17 + yup
 
 
+
+
+
+--UNUSABLE
+--[[
+
+local frend = "/Themes/" .. THEME:GetCurThemeName() .. "/Graphics/lead/"
+local tableFriendLead = FILEMAN:GetDirListing(frend)
+
+local function isItFriend(user)
+	for i = 1, #tableFriendLead do
+		local assetName = tableFriendLead[i]
+		local d = string.sub(assetName, 1, #assetName - 4)
+		if d == user then 
+			return true
+		end
+	end
+	return false
+end
+]]
+
 local isGlobalRanking = true
+
+
 
 -- will eat any mousewheel inputs to scroll pages while mouse is over the background frame
 local function input(event)
@@ -367,12 +390,14 @@ local function makeScoreDisplay(i)
 				self:x(yup1):zoom(tzoom + 0.04):maxwidth((dwidth) / tzoom):halign(0):valign(1)
 			end,
 			DisplayCommand = function(self)
+				self:x(yup1)
 				self:zoom(tzoom + 0.04)
 				local nameeee = hs:GetDisplayName()
 				if #nameeee > 13 then
 					self:zoom(tzoom * (13 / #nameeee) + 0.04)
 				end
 				self:settext(nameeee)
+
 				if not hs:GetEtternaValid() then
 					self:diffuse(color("#F0EEA6"))
 				else
@@ -425,6 +450,36 @@ local function makeScoreDisplay(i)
 				end
 			end
 		},
+
+		--[[
+		Def.Sprite {
+			Name = "pfpFriend",
+			InitCommand = function(self)
+				self:x(yup1):scaletoclipped(12,12):halign(0):valign(1)
+			end,
+			DisplayCommand = function(self)
+				self:diffusealpha(0)
+				local d = hs:GetDisplayName()
+
+				if isItFriend(d) then
+					local aaaaaaaaaaaaaa = string.format(frend .. d .. ".png")
+					self:Load(aaaaaaaaaaaaaa)
+					self:diffusealpha(1)
+
+					local textUserName = self:GetParent():GetChild("Burt".. i)
+					textUserName:x(yup1 + 15)
+
+					if d ~= DLMAN:GetUsername() then
+						textUserName:diffuse(color("#a6f0a7"))
+					else
+						textUserName:diffuse(color("#ffffff"))
+					end
+				end 
+			end
+			
+
+		},
+		]]
 
 		--[[ --wife version display ... not 100% reliable
 		LoadFont("Common normal") .. {

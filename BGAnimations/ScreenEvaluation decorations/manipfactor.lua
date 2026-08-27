@@ -1,7 +1,5 @@
 --Version: 09.16.24 19:34
---unreadable-rain (reimuboobs) theme fork
---credits to MaidOfFire
-
+--For Reimuboobs-theme
 local t = Def.ActorFrame {}
 
 local score = SCOREMAN:GetMostRecentScore()
@@ -11,10 +9,10 @@ end
 
 local mfDisplayX
 local mfDisplayY
-local mfDisplayZoom = 0.27
+local mfDisplayZoom = 0.25
 
-mfDisplayX = SCREEN_RIGHT - 28
-mfDisplayY = SCREEN_CENTER_Y + 190
+mfDisplayX = SCREEN_RIGHT - 36
+mfDisplayY = SCREEN_CENTER_Y + 22
 
 local td = {} -- chart timing data
 local dvt = {} -- offset vector

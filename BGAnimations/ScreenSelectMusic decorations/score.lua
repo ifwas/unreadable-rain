@@ -447,7 +447,10 @@ local function makeText(index)
 			end
 			if index <= #rates then
 				self:settextf("%s (%d)", rates[index], count)
-				if index == rateIndex then
+				if index == rateIndex then 
+					--hyper mega hack to make the itemScore display update initial rate scores, and also handles CodeMessageCommand at the same time... pretty neat huh? -ifwas
+					rateIndex = index
+					itemScoreIndex = index
 					self:diffuse(color("#FFFFFF"))
 				else
 					self:diffuse(getMainColor("positive"))
@@ -766,7 +769,7 @@ local function nestedTabButton(i)
 	return Def.ActorFrame {
 		Name = "Button_"..i,
 		InitCommand = function(self)
-			self:xy(frameX + offsetX/2 + (i - 1) * (nestedTabButtonWidth - capWideScale(100, 80)), frameY + offsetY - 4)
+			self:xy(frameX + offsetX/2 + (i - 1) * (nestedTabButtonWidth - capWideScale(100, 80)), frameY + offsetY - 10)
 		end,
 		CollapseCommand = function(self)
 			self:visible(false)

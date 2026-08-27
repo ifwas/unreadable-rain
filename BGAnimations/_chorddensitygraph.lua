@@ -88,6 +88,8 @@ local function updateGraphMultiVertex(parent, realgraph)
 	end
 end
 
+
+
 local t = Def.ActorFrame {
     Name = "ChordDensityGraph",
     InitCommand=function(self)
@@ -112,6 +114,14 @@ local t = Def.ActorFrame {
 	end,
 }
 
+t[#t + 1] = Def.Quad {
+    Name = "npsline",
+    InitCommand = function(self)
+        self:zoomto(60, wodth):diffusealpha(1):valign(0):halign(0):diffuse(getMainColor("positive")):fadetop(0.2):fadebottom(0.2):diffusealpha(0.2):faderight(1)
+    end,
+
+}
+
 t[#t+1] = Def.ActorMultiVertex {
 		Name = "CDGraphDrawer",
 		GraphUpdateCommand = function(self)
@@ -124,8 +134,7 @@ t[#t+1] = Def.ActorMultiVertex {
 				self:GetParent():SetUpdateFunction(nil)
 			end
 		end
-	}
-
+}
 
 t[#t + 1] = LoadFont("Common Normal") .. {
     Name = "npstext",

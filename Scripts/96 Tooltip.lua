@@ -11,7 +11,7 @@ local screenBorder = 10
 local sideswapped = false
 local tooltipOffSetX = 10
 local tooltipOffSetY = 10
-local cursorSize = 5
+local cursorSize = 20
 
 TOOLTIP = {
     Actor = nil,
@@ -66,9 +66,8 @@ function TOOLTIP.New(self)
         end,
     }
 
-    local p = Def.Quad {
+    local p = LoadActor(THEME:GetPathG("", "cursor")) .. {
         InitCommand = function(self)
-            self:rotationz(45)
             self:zoomto(cursorSize, cursorSize)
             self:visible(false)
             TOOLTIP.Pointer = self

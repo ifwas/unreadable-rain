@@ -140,14 +140,6 @@ local function scoreitem(pn, index, scoreIndex, drawindex)
 			end,
 			BeginCommand = function(self)
 				self:visible(GAMESTATE:IsHumanPlayer() and equals)
-
-				-- it was once asked if anything had been hacked so hard as some thing that had been hacked really hard.. but yes.. this is
-				-- hackered... even hardered.... force the offset plot to update if the index in the scoreboard list matches the currently
-				-- displayed score.. this is because the offset plot was previously using pss to get its info and the way the current system
-				-- is setup this is the most direct way to actually get the pointer to the score being displayed
-				if equals then
-					self:GetParent():GetParent():GetParent():GetChild("OffsetPlot"):playcommand("SetFromScore", {score =  hsTable[index]})
-				end
 			end
 		},
 		--Quad that will act as the bounding box for mouse rollover/click stuff.
@@ -180,6 +172,7 @@ local function scoreitem(pn, index, scoreIndex, drawindex)
 						self:GetParent():GetParent():playcommand("HahaThisCodeINeedHelp", {doot = newindex})
 						self:GetParent():GetParent():GetParent():GetChild("ScoreDisplay"):playcommand("ChangeScore", {score =  hsTable[index]})
 						self:GetParent():GetParent():GetParent():GetChild("OffsetPlot"):playcommand("SetFromScore", {score =  hsTable[index]})
+						MESSAGEMAN:Broadcast("GetScore", {score = hsTable[index]})
 					end
 				end
 			end,

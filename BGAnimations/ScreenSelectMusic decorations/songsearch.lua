@@ -19,6 +19,45 @@ local translated_info = {
 	ExplainSuperSearch = THEME:GetString("TabSearch","ExplainSuperSearch"),
 }
 
+--stuff for slider debug
+local quadxpos = SCREEN_CENTER_X
+local quadypos = SCREEN_CENTER_Y
+
+local filterCategoryLimits = {
+        { 0, 40 },  -- Overall
+        { 0, 40 },  -- Stream
+        { 0, 40 },  -- Jumpstream
+        { 0, 40 },  -- Handstream
+        { 0, 40 },  -- Stamina
+        { 0, 40 },  -- JackSpeed
+        { 0, 40 },  -- Chordjacks
+        { 0, 40 },  -- Technical
+        { 0, 600 },  -- Length (in seconds)
+        { 85, 100 }, -- Percent
+}
+
+--something something to set things nice in the c++ side of things, or at least that's what the rebirth guy says 
+local function setSSFilter(ss, lb, ub)
+    FILTERMAN:SetSSFilter(lb, ss, 0)
+    FILTERMAN:SetSSFilter(ub, ss, 1)
+end
+
+--same thing but to get values ?
+local function getSSFilter(ss)
+    return FILTERMAN:GetSSFilter(ss, 0), FILTERMAN:GetSSFilter(ss, 1)
+end
+
+local function dragqueen(actor, params)
+	local localX = clamp(params.MouseX, 0, SCREEN_WIDTH)
+	local localY = clamp(params.MouseY, 0, SCREEN_HEIGHT)
+	quadxpos = localX
+	quadypos = localY
+	actor:xy(localX, localY)
+end
+	
+
+local grabbingQuad = nil
+
 --this is the stuff that's on the frame (filters)
 local t = Def.ActorFrame {
 	BeginCommand = function(self)
@@ -46,10 +85,12 @@ local t = Def.ActorFrame {
 			whee:Move(0)
 			SCREENMAN:set_input_redirected(PLAYER_1, true)
 			MESSAGEMAN:Broadcast("RefreshSearchResults")
+			FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(true)
 		else
 			self:queuecommand("Off")
 			active = false
 			SCREENMAN:set_input_redirected(PLAYER_1, false)
+			FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(false)
 		end
 	end,
 	TabChangedMessageCommand = function(self)
@@ -57,7 +98,7 @@ local t = Def.ActorFrame {
 	end,
 	LoadFont("Common Large") .. {
 		InitCommand = function(self)
-			self:xy(frameX, frameY):zoom(0.3):halign(0):maxwidth(470)
+			self:xy(frameX - 3, frameY + 4):zoom(0.375):halign(0):maxwidth(470)
 		end,
 		SetCommand = function(self)
 			if active then
@@ -74,6 +115,76 @@ local t = Def.ActorFrame {
 			self:queuecommand("Set")
 		end
 	},
+	LoadFont("Common Large") .. {
+		InitCommand = function(self)
+			self:xy(frameX - 3, frameY + 18):zoom(0.175):halign(0):maxwidth(470):diffusealpha(0.4)
+		end,
+		SetCommand = function(self)
+			if active then
+				self:settext("watcha' looking for?")
+			else
+				self:settext("")
+			end
+		end,
+		UpdateStringMessageCommand = function(self)
+			self:queuecommand("Set")
+		end
+	},
+
+	--[[
+	LoadFont("Common Large") .. {
+		InitCommand = function(self)
+			self:xy(frameX - 3, frameY + 40):zoom(0.175):halign(0):maxwidth(470):diffusealpha(0.4)
+		end,
+		SetCommand = function(self)
+			if active then
+				self:settext(quadxpos)
+			else
+				self:settext("")
+			end
+		end,
+	},
+	]]
 }
+
+
+local sl = Def.ActorFrame{
+	Name = "slindingQuad",
+	UIElements.QuadButton(1, 1) .. {
+		InitCommand = function(self)
+			self:xy(quadxpos, quadypos):zoomto(50,50)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+
+			if grabbedDot == nil then
+				local localX = clamp(params.MouseX, 0, SCREEN_WIDTH)
+				local localY = clamp(params.MouseY, 0, SCREEN_HEIGHT)
+				quadxpos = localX
+				quadypos = localY
+
+				self:xy(localX, localY)
+			end
+		end,
+		MouseHoldCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+
+			if grabbingQuad ~= nil  then 
+				dragqueen(self, params)
+			end
+		end,
+		MouseClickCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+			grabbingQuad = false
+		end,
+		MouseReleaseCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+			grabbingQuad = false
+		end,
+		
+	}
+}
+
+--t[#t + 1] = sl
 
 return t

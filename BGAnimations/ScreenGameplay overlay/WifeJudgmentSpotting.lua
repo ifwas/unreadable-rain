@@ -183,9 +183,6 @@ local t =
 		else
 			GAMESTATE:SetAutoplay(false)
 		end
-		-- Discord thingies
-		updateDiscordStatus(false)
-
 		-- now playing thing for streamers
 		updateNowPlaying()
 
@@ -1234,7 +1231,7 @@ local pm = Def.ActorFrame {
 			self:zoomto(wodth, hidth):halign(0):diffuse(color("1,1,1,1")):draworder(900)
 		end,
 		HighlightCommand = function(self) -- use the bg for detection but move the seek pointer -mina
-			if isOver(self) then
+			if isOver(self) and practiceMode then
 				local seek = self:GetParent():GetChild("Seek")
 				local seektext = self:GetParent():GetChild("Seektext")
 				local cdg = self:GetParent():GetChild("ChordDensityGraph")
