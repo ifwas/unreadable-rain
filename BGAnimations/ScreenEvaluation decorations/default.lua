@@ -585,6 +585,9 @@ local function scoreBoard(pn, position)
 			ScoreChangedMessageCommand = function(self)
 				self:queuecommand("Set")
 			end,
+			RecalculateGraphsMessageCommand = function(self)
+				self:queuecommand("Set")
+			end,
 			},
 			LoadFont("Common Large") .. {
 				Name = "NormalText",
@@ -628,6 +631,7 @@ local function scoreBoard(pn, position)
 						rescorepercent = getRescoredWife3Judge(3, judge, rescoretable)
 						local pct = notShit.floor(rescorepercent, 2)
 						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
+						graderaw = GetGradeFromPercent(pct/100)
 						self:settextf(
 							"%05.2f%% (%s)", pct, ws .. judge
 						)
@@ -639,6 +643,7 @@ local function scoreBoard(pn, position)
 						local js = judge ~= 9 and judge or "ustice"
 						local pct = notShit.floor(rescorepercent, 2)
 						self:diffuse(getGradeColor(GetGradeFromPercent(pct/100)))
+						graderaw = GetGradeFromPercent(pct/100)
 						self:settextf(
 							"%05.2f%% (%s)", pct, ws .. js
 						)
