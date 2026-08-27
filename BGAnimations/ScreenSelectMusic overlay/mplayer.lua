@@ -104,6 +104,8 @@ local t = Def.ActorFrame {
 		Name = "Random",
 		InitCommand = function(self)
 			self:xy(30,-12):zoomto(15,15):halign(0)
+			self.randex = 0
+		    self.randlist = {}
 		end,
 		MouseOverCommand = function(self)
 			self:diffusealpha(0.4)
@@ -112,21 +114,37 @@ local t = Def.ActorFrame {
 			self:diffusealpha(1)
 		end,
 		MouseDownCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" then
-				local w = SCREENMAN:GetTopScreen():GetMusicWheel()
+			local w = SCREENMAN:GetTopScreen():GetMusicWheel()
 
-				if INPUTFILTER:IsShiftPressed() and self.lastlastrandom ~= nil then
-					if w:SelectSong(self.lastlastrandom) then
+			local function newrandsong()
+				local t = w:GetSongs()
+				if #t == 0 then return nil end
+				local random_song = t[math.random(#t)]
+				return random_song
+			end
+
+			if params.event == "DeviceButton_left mouse button" then
+
+				if INPUTFILTER:IsShiftPressed() then
+					self.randex = self.randex - 1
+					if self.randex < 1 then
+						self.randex = 1
+						table.insert(self.randlist, 1, newrandsong())
+					end
+					local randsong = self.randlist[self.randex]
+
+					if w:SelectSong(randsong) then 
 						return
 					end
 				end
 
-				local t = w:GetSongs()
-				if #t == 0 then return end
-				local random_song = t[math.random(#t)]
-				w:SelectSong(random_song)
-				self.lastlastrandom = self.lastrandom
-				self.lastrandom = random_song
+				self.randex = self.randex + 1
+				if self.randex > #self.randlist then
+					self.randex = #self.randlist + 1
+					table.insert(self.randlist, newrandsong())
+				end
+				local randsong = self.randlist[self.randex]
+				w:SelectSong(randsong)
 			end
 		end
 	},
