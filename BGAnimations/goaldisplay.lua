@@ -1,12 +1,13 @@
 local tzoom = 0.5
-local pdh = 48 * tzoom
-local ygap = 2
+local pdh = 70 * tzoom
+local phd = 48 * tzoom
+local ygap = 3
 local packspaceY = pdh + ygap
 
-local numgoals = 12
+local numgoals = 8
 local ind = 0
-local offx = 5
-local width = SCREEN_WIDTH * 0.56
+local offx = 2
+local width = 200
 local dwidth = width - offx * 2
 local height = (numgoals + 2) * packspaceY
 
@@ -17,10 +18,22 @@ local c2x = c1x + (tzoom * 4 * adjx) -- for: song header and song name
 local c5x = dwidth -- for: diff header, msd and steps diff
 local c4x = c5x - adjx - (tzoom * 3.5 * adjx) -- for: date header, assigned, achieved
 local c3x = c4x - adjx - (tzoom * 10 * adjx) -- for: filter header and song name
-local headeroff = packspaceY / 1.5
+local headeroff = (phd - 5) / 1.5
 
 local moving
 local cheese
+
+function truncatetxt(self, text, maxwidth)
+    for i = 1, #text do
+        self:settext(text:sub(1, i).."..")
+        if self:GetZoomedWidth() > maxwidth then
+            break
+        end
+        if i == #text then
+            self:settext(text)
+        end
+    end
+end
 
 -- will eat any mousewheel inputs to scroll pages while mouse is over the background frame
 local function input(event)
@@ -110,19 +123,19 @@ local o = Def.ActorFrame {
 	Def.Quad {
 		Name = "FrameDisplay",
 		InitCommand = function(self)
-			self:zoomto(width, height - headeroff):halign(0):valign(0):diffuse(getMainColor("tabs"))
+			self:zoomto(width, height - headeroff):halign(0):valign(0):diffusealpha(0)
 		end
 	},
 	-- headers
 	Def.Quad {
 		InitCommand = function(self)
-			self:xy(offx, headeroff):zoomto(dwidth, pdh):halign(0):diffuse(getMainColor("frames"))
+			self:xy(offx, headeroff):zoomto(dwidth, phd):halign(0):diffuse(getMainColor("frames"))
 		end
 	},
 	UIElements.TextToolTip(1, 1, "Common normal") .. {
 		--priority header
 		InitCommand = function(self)
-			self:xy(c0x, headeroff):zoom(tzoom):halign(0.5)
+			self:xy(8, headeroff):zoom(tzoom):halign(0.5)
 			self:diffuse(getMainColor("positive"))
 		end,
 		UpdateCommand = function(self)
@@ -148,7 +161,7 @@ local o = Def.ActorFrame {
 		--rate header
 		Name = "RateHeader",
 		InitCommand = function(self)
-			self:xy(c1x, headeroff):zoom(tzoom):halign(0.5):settext(translated_info["RateLong"])
+			self:xy(70, headeroff):zoom(tzoom):halign(0.5):settext(translated_info["RateLong"])
 			self:diffuse(getMainColor("positive"))
 		end,
 		MouseOverCommand = function(self)
@@ -168,7 +181,7 @@ local o = Def.ActorFrame {
 	UIElements.TextToolTip(1, 1, "Common normal") .. {
 		--song header
 		InitCommand = function(self)
-			self:xy(c2x, headeroff):zoom(tzoom):halign(0):settext(translated_info["Song"])
+			self:xy(17, headeroff):zoom(tzoom):halign(0):settext(translated_info["Song"])
 			self:diffuse(getMainColor("positive"))
 		end,
 		MouseOverCommand = function(self)
@@ -188,7 +201,7 @@ local o = Def.ActorFrame {
 	LoadFont("Common normal") .. {
 		--index header
 		InitCommand = function(self)
-			self:xy(width / 2, headeroff):zoom(tzoom):halign(0.5)
+			self:xy(5, height + 13):zoom(tzoom):halign(0)
 		end,
 		UpdateCommand = function(self)
 			self:settextf("%i-%i (%i)", ind + 1, ind + numgoals, #goaltable)
@@ -197,7 +210,7 @@ local o = Def.ActorFrame {
 	UIElements.TextToolTip(1, 1, "Common normal") .. {
 		--completed toggle // filter header
 		InitCommand = function(self)
-			self:xy(width/2 + capWideScale(37, 45), headeroff):zoom(tzoom):halign(0):settext(filts[1])
+			self:xy(width - 2, height + 15):zoom(tzoom):halign(1):settext(filts[1])
 			self:diffuse(getMainColor("positive"))
 		end,
 		MouseOverCommand = function(self)
@@ -223,7 +236,7 @@ local o = Def.ActorFrame {
 	UIElements.TextToolTip(1, 1, "Common normal") .. {
 		--date header
 		InitCommand = function(self)
-			self:xy(c4x - capWideScale(5, 35), headeroff):zoom(tzoom):halign(1):settext(translated_info["Date"])
+			self:xy(c4x  - 10, headeroff):zoom(tzoom):halign(1):settext(translated_info["Date"])
 			self:diffuse(getMainColor("positive"))
 		end,
 		MouseOverCommand = function(self)
@@ -262,11 +275,34 @@ local o = Def.ActorFrame {
 	}
 }
 
+local priorityx = 7
+local priorityY = -5
+local songX = 15
+local songY = -5
+local songtzoom  = 0.47
+local artistx = songX
+local artisty = songY + 8
+local artisttzoom = 0.3
+
+local goalstzoom = 0.4
+local rateX = 70
+local rateY = 8
+local wifeGX = 15
+local wifeGY = rateY
+
+local minax = dwidth
+local minay = 0
+local minatz = 0.3
+local assignedY = 8
+local assignedtzoom = 0.3
+
+
 local function makeGoalDisplay(i)
 	local sg
 	local ck
 	local goalsong
 	local goalsteps
+	local strbestWife
 
 	local o = Def.ActorFrame {
 		InitCommand = function(self)
@@ -289,13 +325,13 @@ local function makeGoalDisplay(i)
 				self:x(offx):zoomto(dwidth, pdh):halign(0)
 			end,
 			DisplayCommand = function(self)
-				self:diffuse(color("#111111D9"))
+				self:diffuse(getMainColor("tabs"))
 			end
 		},
 		UIElements.TextToolTip(1, 1, "Common normal") .. {
 			--priority
 			InitCommand = function(self)
-				self:x(c0x):zoom(tzoom):halign(0.5):valign(1)
+				self:xy(priorityx, priorityY):zoom(tzoom * 0.9):halign(0.5):valign(1)
 			end,
 			DisplayCommand = function(self)
 				self:settext(sg:GetPriority())
@@ -334,7 +370,7 @@ local function makeGoalDisplay(i)
 		UIElements.SpriteButton(1, 1, THEME:GetPathG("", "X.png")) .. {
 			-- delete button
 			InitCommand = function(self)
-				self:xy(c0x - 13,pdh/2.3):zoom(0.3):halign(0):valign(1):diffuse(Color.Red)
+				self:xy(width - 7, -14):zoom(0.32):halign(0):valign(1):diffuse(Color.Red)
 			end,
 			MouseOverCommand = function(self)
 				self:diffusealpha(hoverAlpha)
@@ -354,7 +390,7 @@ local function makeGoalDisplay(i)
 		UIElements.TextToolTip(1, 1, "Common normal") .. {
 			--rate
 			InitCommand = function(self)
-				self:x(c1x):zoom(tzoom):halign(0.5):valign(1)
+				self:xy(rateX, rateY):zoom(goalstzoom):halign(0.5):valign(0)
 			end,
 			DisplayCommand = function(self)
 				local ratestring = string.format("%.2f", sg:GetRate()):gsub("%.?0$", "") .. "x"
@@ -384,7 +420,7 @@ local function makeGoalDisplay(i)
 		UIElements.TextToolTip(1, 1, "Common normal") .. {
 			--percent
 			InitCommand = function(self)
-				self:x(c1x):zoom(tzoom):halign(0.5):valign(0):maxwidth((50 - capWideScale(10, 10)) / tzoom)
+				self:xy(wifeGX, wifeGY):zoom(goalstzoom):halign(0):valign(0)
 			end,
 			DisplayCommand = function(self)
 				local perc = notShit.round(sg:GetPercent() * 100000) / 1000
@@ -420,20 +456,34 @@ local function makeGoalDisplay(i)
 		UIElements.TextToolTip(1, 1, "Common normal") .. {
 			--song name
 			InitCommand = function(self)
-				self:x(c2x):zoom(tzoom):maxwidth((c3x - c2x - capWideScale(50, 80)) / tzoom):halign(0):valign(1):draworder(1)
+				self:xy(songX, songY):zoom(songtzoom):halign(0):valign(1):draworder(1)
 			end,
 			DisplayCommand = function(self)
 				if goalsong then
-					self:settext(goalsong:GetDisplayMainTitle()):diffuse(getMainColor("positive"))
+					truncatetxt(self, goalsong:GetDisplayMainTitle(), 150)
+					self:diffuse(getMainColor("positive"))
 				else
 					self:settext(sg:GetChartKey()):diffuse(getMainColor("negative"))
 				end
 			end,
 			MouseOverCommand = function(self)
 				self:diffusealpha(hoverAlpha)
+				self:GetParent():GetChild("hola"):diffusealpha(hoverAlpha)
+				TOOLTIP:SetText("No Personal Best Registered...")
+
+				if strbestWife ~= "" then 
+					TOOLTIP:SwitchSide(false)
+					TOOLTIP:SetText(strbestWife)
+				end
+
+				TOOLTIP:Show()
+				MESSAGEMAN:Broadcast("HoverNameOver")
 			end,
 			MouseOutCommand = function(self)
 				self:diffusealpha(1)
+				self:GetParent():GetChild("hola"):diffusealpha(1)
+				TOOLTIP:Hide()
+				MESSAGEMAN:Broadcast("HoverNameOut")
 			end,
 			MouseDownCommand = function(self, params)
 				if params.event == "DeviceButton_left mouse button" and sg ~= nil and goalsong and goalsteps then
@@ -447,12 +497,28 @@ local function makeGoalDisplay(i)
 				end
 			end
 		},
+		UIElements.TextToolTip(1, 1, "Common normal") .. {
+			--song artist
+			Name = "hola",
+			InitCommand = function(self)
+				self:xy(artistx,artisty):zoom(artisttzoom):maxwidth(750):halign(0):valign(1):draworder(1)
+			end,
+			DisplayCommand = function(self)
+				if goalsong then
+					truncatetxt(self, goalsong:GetDisplayArtist(), 80)
+					self:diffuse(getMainColor("positive"))
+				else
+					self:settext(sg:GetChartKey()):diffuse(getMainColor("negative"))
+				end
+			end
+		},
 		LoadFont("Common normal") .. {
 			--pb
 			InitCommand = function(self)
-				self:x(c2x):zoom(tzoom):halign(0):valign(0)
+				self:x(width - 100):zoom(tzoom * 0.7):halign(0):valign(0)
 			end,
 			DisplayCommand = function(self)
+				strbestWife = ""
 				local pb = sg:GetPBUpTo()
 				if pb then
 					local pbwife = pb:GetWifeScore() * 100
@@ -462,49 +528,39 @@ local function makeGoalDisplay(i)
 					else
 						pbstr = string.format("%05.2f%%", notShit.floor(pbwife, 2))
 					end
+
+					
+
 					if pb:GetMusicRate() < sg:GetRate() then
 						local ratestring = string.format("%.2f", pb:GetMusicRate()):gsub("%.?0$", "") .. "x"
-						self:settextf("%s: %s (%s)", translated_info["Best"], pbstr, ratestring)
+						strbestWife = string.format("%s: %s (%s)", translated_info["Best"], pbstr, ratestring)
 					else
-						self:settextf("%s: %s", translated_info["Best"], pbstr)
+						strbestWife = string.format("%s: %s", translated_info["Best"], pbstr)
 					end
-					self:diffuse(getGradeColor(pb:GetWifeGrade()))
-					self:visible(true)
 				else
-					self:settextf("(%s: %5.2f%%)", translated_info["Best"], 0)
-					self:diffuse(byAchieved(sg))
+					self:settext("")
 				end
 			end
 		},
 		LoadFont("Common normal") .. {
 			--assigned
 			InitCommand = function(self)
-				self:x(c4x):zoom(tzoom):halign(1):valign(0):maxwidth(width / 3.5 / tzoom)
+				self:xy(minax, assignedY):zoom(assignedtzoom):halign(1):valign(0)
 			end,
 			DisplayCommand = function(self)
-				self:settextf("%s: %s", translated_info["Assigned"], sg:WhenAssigned()):diffuse(byAchieved(sg))
-			end
-		},
-		LoadFont("Common normal") .. {
-			--achieved
-			InitCommand = function(self)
-				self:x(c4x):zoom(tzoom):halign(1):valign(1):maxwidth(width / 3.5 / tzoom)
-			end,
-			DisplayCommand = function(self)
-				if sg:IsAchieved() then
-					self:settextf("%s: %s", translated_info["Achieved"], sg:WhenAchieved())
+				if sg:IsAchieved() then  
+					self:settextf("%s: %s", translated_info["Achieved"], sg:WhenAchieved()):diffuse(byAchieved(sg))
 				elseif sg:IsVacuous() then
-					self:settext(translated_info["Vacuous"])
+					self:settext(translated_info["Vacuous"]):diffuse(byAchieved(sg))
 				else
-					self:settext("")
+					self:settextf("%s: %s", translated_info["Assigned"], sg:WhenAssigned()):diffuse(byAchieved(sg))
 				end
-				self:diffuse(byAchieved(sg))
 			end
 		},
 		LoadFont("Common normal") .. {
 			--msd diff
 			InitCommand = function(self)
-				self:x(c5x):zoom(tzoom):halign(1):valign(1)
+				self:xy(minax, -4):zoom(tzoom * 0.95):halign(1):valign(1)
 			end,
 			DisplayCommand = function(self)
 				if goalsteps then
@@ -518,7 +574,7 @@ local function makeGoalDisplay(i)
 		LoadFont("Common normal") .. {
 			--steps diff
 			InitCommand = function(self)
-				self:x(c5x):zoom(tzoom):halign(1):valign(0)
+				self:xy(minax, -2):zoom(tzoom * 0.9):halign(1):valign(0)
 			end,
 			DisplayCommand = function(self)
 				if goalsteps and goalsong then

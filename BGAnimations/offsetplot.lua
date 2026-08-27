@@ -5,9 +5,9 @@ local tst = ms.JudgeScalers
 local judge = GetTimingDifficulty()
 local tso = tst[judge]
 
-local plotWidth, plotHeight = 400, 120
-local plotX, plotY = SCREEN_WIDTH - 5 - plotWidth / 2, SCREEN_HEIGHT - 59.5 - plotHeight / 2
-local dotDims, plotMargin = 2, 4
+local plotWidth, plotHeight = 400, 150
+local plotX, plotY = SCREEN_WIDTH - 20 - plotWidth / 2, SCREEN_HEIGHT - 70 - plotHeight / 2
+local dotDims, plotMargin = 2, 2
 local maxOffset = math.max(180, 180 * tso)
 local baralpha = 0.2
 local bgalpha = 0.8
@@ -19,8 +19,6 @@ local translated_info = {
 	Middle = THEME:GetString("OffsetPlot", "ExplainMiddle"),
 	Right = THEME:GetString("OffsetPlot", "ExplainRight"),
 	Down = THEME:GetString("OffsetPlot", "ExplainDown"),
-	Early = THEME:GetString("OffsetPlot", "Early"),
-	Late = THEME:GetString("OffsetPlot", "Late"),
 	SD = THEME:GetString("ScreenEvaluation", "StandardDev"),
 	Mean = THEME:GetString("ScreenEvaluation", "Mean"),
 	UsingReprioritized = THEME:GetString("OffsetPlot", "UsingReprioritized"),
@@ -59,7 +57,7 @@ local function fitX(x) -- Scale time values to fit within plot width.
 end
 
 local function fitY(y) -- Scale offset values to fit within plot height
-	return -1 * y / maxOffset * plotHeight / 2
+	return -1 * y / maxOffset * (plotHeight - 22) / 2
 end
 
 local function HighlightUpdaterThing(self)
@@ -194,6 +192,10 @@ local o = Def.ActorFrame {
 			MESSAGEMAN:Broadcast("JudgeDisplayChanged")
 		end
 	end,
+	LoadScoreInOffsetPlotMessageCommand = function(self, params)
+		if params.score == nil then return end
+		self:playcommand("SetFromScore", params)
+	end,
 	LoadedCustomWindowMessageCommand = function(self)
 		usingCustomWindows = true
 		local replay = REPLAYS:GetActiveReplay()
@@ -278,8 +280,9 @@ local o = Def.ActorFrame {
 o[#o + 1] = Def.Quad {
 	Name = "BGQuad",
 	JudgeDisplayChangedMessageCommand = function(self)
-		self:zoomto(plotWidth + plotMargin, plotHeight + plotMargin)
-		self:diffuse(color("0.05,0.05,0.05,0.05"))
+		self:y(10)
+		self:zoomto(plotWidth + plotMargin + 10, plotHeight + plotMargin)
+		self:diffuse(color("0.05,0.05,0.05,0.08"))
 		self:diffusealpha(bgalpha)
 	end,
 	HighlightCommand = function(self)
@@ -479,8 +482,18 @@ o[#o + 1] = Def.ActorMultiVertex {
 -- filter
 o[#o + 1] = LoadFont("Common Normal") .. {
 	JudgeDisplayChangedMessageCommand = function(self)
-		self:xy(0, plotHeight / 2 - 2):zoom(textzoom):halign(0.5):valign(1)
+		local yyyyyyyyyyyyyyyyyyyy
+		if SCREENMAN:GetTopScreen():GetName() == "ScreenNetEvaluation" or SCREENMAN:GetTopScreen():GetName() == "ScreenEvaluationNormal" then 
+			self:xy(176, plotHeight / 2 + 32):zoom(textzoom + 0.05):halign(0):valign(1)
+			yyyyyyyyyyyyyyyyyyyy = plotHeight / 2 + 6
+		else
+			self:xy(0, plotHeight / 2 - 2):zoom(textzoom + 0.05):halign(0.5):valign(1)
+			yyyyyyyyyyyyyyyyyyyy = plotHeight / 2 - 2
+		end
+
 		if #ntt > 0 then
+			self:finishtweening()
+			self:diffusealpha(0)
 			if handspecific then
 				if left then
 					self:settext("left")
@@ -492,23 +505,12 @@ o[#o + 1] = LoadFont("Common Normal") .. {
 					self:settext("right")
 				end
 			else
-				self:settext(translated_info["Down"])
+				self:settext("all")
 			end
+			self:y(yyyyyyyyyyyyyyyyyyyy + 4):decelerate(0.25):diffusealpha(1):y(yyyyyyyyyyyyyyyyyyyy)
 		else
 			self:settext("")
 		end
-	end
-}
-
--- Early/Late markers
-o[#o + 1] = LoadFont("Common Normal") .. {
-	JudgeDisplayChangedMessageCommand = function(self)
-		self:xy(-plotWidth / 2, -plotHeight / 2 + 2):zoom(textzoom):halign(0):valign(0):settextf("%s (+%ims)", translated_info["Late"], maxOffset)
-	end
-}
-o[#o + 1] = LoadFont("Common Normal") .. {
-	JudgeDisplayChangedMessageCommand = function(self)
-		self:xy(-plotWidth / 2, plotHeight / 2 - 2):zoom(textzoom):halign(0):valign(1):settextf("%s (-%ims)", translated_info["Early"], maxOffset)
 	end
 }
 

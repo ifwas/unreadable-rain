@@ -51,6 +51,20 @@ function incrementTabIndex()
 	end
 end
 
+--fade in or out actors on the fly, this one is specifically for elements to make space for the profile
+function ProfileActorFadeInOut(actor, onOff)
+	actor:finishtweening()
+	actor:smooth(0.3)
+
+	if onOff == false then 
+		actor:visible(true)
+		actor:diffusealpha(1)
+	elseif onOff == true then
+		actor:diffusealpha(0)
+		actor:visible(false)
+	end
+end
+
 -- Returns the current tab index
 function getTabIndex()
 	return tabIndex

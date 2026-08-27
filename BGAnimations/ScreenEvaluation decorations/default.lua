@@ -1,5 +1,6 @@
 local t = Def.ActorFrame {}
 local inMulti = Var("LoadingScreen") == "ScreenNetEvaluation"
+local idontknowhowtojumptrill = themeConfig:get_data().global.ManipFactor
 
 if GAMESTATE:GetNumPlayersEnabled() == 1 then
 	if inMulti then
@@ -17,8 +18,25 @@ end
 
 local translated_info = {
 	CCOn = THEME:GetString("ScreenEvaluation", "ChordCohesionOn"),
-	MAPARatio = THEME:GetString("ScreenEvaluation", "MAPARatio")
+	MAPARatio = THEME:GetString("ScreenEvaluation", "MAPARatio"),
+	SessionTime = THEME:GetString("GeneralInfo", "SessionTime"),
 }
+
+--from infoplayer
+local function UpdateTime(self)
+	local year = Year()
+	local month = MonthOfYear() + 1
+	local day = DayOfMonth()
+	local hour = Hour()
+	local minute = Minute()
+	local second = Second()
+	self:GetChild("CurrentTime"):settextf("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
+
+	local sessiontime = GAMESTATE:GetSessionTime()
+	self:GetChild("SessionTime"):settextf("%s: %s", translated_info["SessionTime"], SecondsToHHMMSS(sessiontime))
+	self:diffuse(nonButtonColor)
+end
+
 
 -- im going to cry
 local aboutToForceWindowSettings = false
@@ -44,10 +62,12 @@ end
 local dvt = {}
 local totalTaps = 0
 local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats()
+local graderaw = score:GetWifeGrade()
 
-local frameX = 24
-local frameY = 210
-local frameWidth = SCREEN_CENTER_X - 101
+
+local frameX = 42
+local frameY = 220
+local frameWidth = SCREEN_CENTER_X - 100
 
 -- dont default to using custom windows and dont persist that state
 -- custom windows are meant to be used as a thing you occasionally check, not the primary way to play the game
@@ -63,15 +83,32 @@ local judges = {
 	"TapNoteScore_Miss"
 }
 
+
+
+--Metadata Variables and table related things
+-----------------------------------------------------------------------------------------------
+local songInfoX = SCREEN_CENTER_X - frameWidth - frameX - 25
+local songInfoY = SCREEN_TOP + 50
+
+local someZoomTable = {
+	zoomSongTitle = 1 / 1.5,
+	zoomArtist = 1 / 4,
+	zoomRateString = 1 / 2,
+	zoomSimAuthor = 1 / 6
+}
+-----------------------------------------------------------------------------------------------
+--the metadata in question
+
 t[#t+1] = Def.ActorFrame {
 	Name = "SongInfo",
 
 	LoadFont("Common Large") .. {
 		Name = "SongTitle",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, capWideScale(13, 16))
-			self:zoom(0.45)
+			self:xy(songInfoX, songInfoY)
+			self:zoom(someZoomTable.zoomSongTitle)
 			self:maxwidth(capWideScale(250 / 0.25, 180 / 0.25))
+			self:halign(0)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -83,10 +120,10 @@ t[#t+1] = Def.ActorFrame {
 	LoadFont("Common Large") .. {
 		Name = "SongArtist",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, capWideScale(28, 38))
-			self:zoom(0.23)
+			self:xy(songInfoX + 2, songInfoY + 23)
+			self:zoom(someZoomTable.zoomArtist)
 			self:maxwidth(180 / 0.25)
-			self:diffuse(getMainColor("positive"))
+			self:halign(0)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -96,11 +133,27 @@ t[#t+1] = Def.ActorFrame {
 		end,
 	},
 	LoadFont("Common Large") .. {
+		Name = "SimAuthor",
+		InitCommand = function(self)
+			self:xy(songInfoX + 3, songInfoY + 36)
+			self:zoom(someZoomTable.zoomSimAuthor)
+			self:diffuse(getMainColor("positive"))
+			self:maxwidth(180 / 0.25)
+			self:halign(0)
+		end,
+		BeginCommand = function(self)
+			self:queuecommand("Set")
+		end,
+		SetCommand = function(self)
+			self:settext("By: " .. GAMESTATE:GetCurrentSong():GetOrTryAtLeastToGetSimfileAuthor())
+		end,
+	},
+	LoadFont("Common Large") .. {
 		Name = "RateString",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X, capWideScale(40, 55))
-			self:zoom(0.35)
-			self:halign(0.5)
+			self:xy(songInfoX, songInfoY + 55)
+			self:zoom(someZoomTable.zoomRateString)
+			self:halign(0)
 			self:queuecommand("Set")
 		end,
 		ScoreChangedMessageCommand = function(self)
@@ -118,6 +171,8 @@ t[#t+1] = Def.ActorFrame {
 			rate = notShit.round(rate,3)
 			local ratestr = getRateString(rate)
 			if ratestr == "1x" then
+				self:GetParent():y(songInfoY - 30)
+				self:GetParent():GetChild("Subtitle"):y(SCREEN_BOTTOM - 27) --oopsie
 				self:settext("")
 			else
 				self:settext(ratestr)
@@ -127,9 +182,10 @@ t[#t+1] = Def.ActorFrame {
 	LoadFont("Common Large") .. {
 		Name = "Subtitle",
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X + capWideScale(get43size(150),0), SCREEN_BOTTOM - 30)
-			self:zoom(0.25)
+			self:xy(SCREEN_CENTER_X + capWideScale(get43size(150),0), SCREEN_BOTTOM - 9):valign(1)
+			self:zoom(0.28)
 			self:maxwidth(capWideScale(500 / 0.25, 500 / 0.25))
+			self:diffuse(getMainColor("positive"))
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -138,12 +194,38 @@ t[#t+1] = Def.ActorFrame {
 			if GAMESTATE:GetCurrentSong():GetDisplaySubTitle() == "" then
 			   self:settext("")
 		    else
-			   self:settext("\""..GAMESTATE:GetCurrentSong():GetDisplaySubTitle().. "\"")
+			   self:settext("''"..GAMESTATE:GetCurrentSong():GetDisplaySubTitle().. "''")
 		    end
 		end,
 	},
 }
 
+--cdtitle
+t[#t + 1] = Def.Sprite {
+	Texture= GAMESTATE:GetCurrentSong():GetCDTitlePath(),
+	InitCommand=function(self)
+		self:xy(SCREEN_CENTER_X - 60,SCREEN_CENTER_Y - 120):wag()
+
+		local height = self:GetHeight()
+		local width = self:GetWidth()
+
+		if height >= 60 and width >= 75 then
+			if height * (75 / 60) >= width then
+				self:zoom(40 / height)
+			else
+				self:zoom(56.25 / width)
+			end
+		elseif height >= 60 then
+			self:zoom(40 / height)
+		elseif width >= 75 then
+			self:zoom(56.25 / width)
+		else
+			self:zoom(0.75)
+		end
+	end
+}
+
+-----------------------------------------------------------------------------------------------
 -- a helper to get the radar value for a score and fall back to playerstagestats if that fails
 local function gatherRadarValue(radar, score)
     local n = score:GetRadarValues():GetValue(radar)
@@ -217,12 +299,14 @@ local function scoreBoard(pn, position)
 				aboutToForceWindowSettings = true
 				MESSAGEMAN:Broadcast("ForceWindow", {judge=4})
 				MESSAGEMAN:Broadcast("RecalculateGraphs", {judge=4})
+				MESSAGEMAN:Broadcast("LoadScoreInOffsetPlot", {score = score})
 			else
 				judge = scaleToJudge(SCREENMAN:GetTopScreen():GetReplayJudge())
 				clampJudge()
 				judge2 = judge
 				MESSAGEMAN:Broadcast("ForceWindow", {judge=judge})
 				MESSAGEMAN:Broadcast("RecalculateGraphs", {judge=judge})
+				MESSAGEMAN:Broadcast("LoadScoreInOffsetPlot", {score = score})
 			end
 		end,
 		ChangeScoreCommand = function(self, params)
@@ -282,40 +366,15 @@ local function scoreBoard(pn, position)
 			Name = "DisplayBG",
 			InitCommand = function(self)
 				self:xy(frameX - 5, frameY + 5)
-				self:zoomto(frameWidth + 10, 225)
+				self:zoomto(frameWidth + 10, 217)
 				self:halign(0):valign(0)
-				self:diffuse(getMainColor("frames"))
-				self:diffusealpha(0.8)
-			end,
-		},
-		Def.Quad {
-			Name = "DisplayHorizontalLine1",
-			InitCommand = function(self)
-				self:xy(frameX, frameY + 30)
-				self:zoomto(frameWidth, 2)
-				self:halign(0)
-				self:diffuse(getMainColor("highlight"))
-				self:faderight(0.4)
-				self:fadeleft(0.4)
-				self:diffusealpha(0.5)
-			end,
-		},
-		Def.Quad {
-			Name = "DisplayHorizontalLine2",
-			InitCommand = function(self)
-				self:xy(frameX, frameY + 55)
-				self:zoomto(frameWidth, 2)
-				self:halign(0)
-				self:diffuse(getMainColor("highlight"))
-				self:faderight(0.4)
-				self:fadeleft(0.4)
-				self:diffusealpha(0.5)
+				self:diffuse(getMainColor("frames")):diffusealpha(0.7)
 			end,
 		},
 		Def.ActorFrame {
 			Name = "CustomScoringDisplay",
 			InitCommand = function(self)
-				self:xy(frameX - 5, frameY + 5)
+				self:xy(frameX + 70, frameY + 9)
 				self:visible(usingCustomWindows)
 			end,
 			ToggleCustomWindowsMessageCommand = function(self)
@@ -323,8 +382,7 @@ local function scoreBoard(pn, position)
 				usingCustomWindows = not usingCustomWindows
 
 				self:visible(usingCustomWindows)
-				self:GetParent():GetChild("GraphDisplayP1"):visible(not usingCustomWindows)
-				self:GetParent():GetChild("ComboGraphP1"):visible(not usingCustomWindows)
+				self:GetParent():GetChild("WifeDisplay"):visible(not usingCustomWindows)
 				if not usingCustomWindows then
 					unloadCustomWindowConfig()
 					MESSAGEMAN:Broadcast("UnloadedCustomWindow")
@@ -364,46 +422,13 @@ local function scoreBoard(pn, position)
 					MESSAGEMAN:Broadcast("MoveCustomWindowIndex", {direction=1})
 				end
 			end,
-
-			UIElements.QuadButton(1, 1) .. {
-				Name = "BG",
-				InitCommand = function(self)
-					self:zoomto(capWideScale(get43size(235),235), 25)
-					self:halign(0):valign(1)
-					self:diffuse(getMainColor("tabs"))
-				end,
-				MouseClickCommand = function(self, params)
-					if self:IsVisible() and usingCustomWindows then
-						if params.event ~= "DeviceButton_left mouse button" then
-							moveCustomWindowConfigIndex(1)
-						else
-							moveCustomWindowConfigIndex(-1)
-						end
-						loadCurrentCustomWindowConfig()
-						MESSAGEMAN:Broadcast("RecalculateGraphs", {judge=judge})
-						lastSnapshot = REPLAYS:GetActiveReplay():GetLastReplaySnapshot()
-						self:GetParent():playcommand("Set")
-						MESSAGEMAN:Broadcast("LoadedCustomWindow")
-					end
-				end,
-			},
-			Def.Quad {
-				Name = "SmallHorizontalLine",
-				InitCommand = function(self)
-					self:xy(0, 0)
-					self:zoomto(capWideScale(get43size(235),235), 2)
-					self:halign(0)
-					self:diffuse(getMainColor("highlight"))
-					self:diffusealpha(0.5)
-				end,
-			},
 			LoadFont("Common Large") .. {
 				Name = "CustomPercent",
 				InitCommand = function(self)
-					self:xy(8, -4)
+					self:xy(0, 16)
 					self:zoom(0.45)
 					self:halign(0):valign(1)
-					self:maxwidth(capWideScale(320, 500))
+					self:maxwidth(500)
 				end,
 				SetCommand = function(self)
 					self:diffuse(getGradeColor(score:GetWifeGrade()))
@@ -426,7 +451,7 @@ local function scoreBoard(pn, position)
 		LoadFont("Common Large") .. {
 			Name = "MSDDisplay",
 			InitCommand = function(self)
-				self:xy(frameX + 3, frameY + 32)
+				self:xy(frameX + 70, frameY + 32)
 				self:zoom(0.5)
 				self:halign(0):valign(0)
 				self:maxwidth(200)
@@ -459,7 +484,7 @@ local function scoreBoard(pn, position)
 		LoadFont("Common Large") .. {
 			Name = "SSRDisplay",
 			InitCommand = function(self)
-				self:xy(frameWidth + frameX - 3, frameY + 32)
+				self:xy(frameWidth + 1, frameY + 32)
 				self:zoom(0.5)
 				self:halign(1):valign(0)
 				self:maxwidth(200)
@@ -479,8 +504,8 @@ local function scoreBoard(pn, position)
 		LoadFont("Common Large") .. {
 			Name = "DifficultyName",
 			InitCommand = function(self)
-				self:xy(frameWidth + frameX - 3, frameY + 7)
-				self:zoom(0.5)
+				self:xy(frameWidth + frameX, frameY + 10)
+				self:zoom(0.3)
 				self:halign(1):valign(0)
 				self:maxwidth(200)
 			end,
@@ -502,7 +527,7 @@ local function scoreBoard(pn, position)
 			UIElements.QuadButton(1, 1) .. {
 				Name = "MouseHoverBG",
 				InitCommand = function(self)
-					self:xy(frameX + 3, frameY + 9)
+					self:xy(frameX + 70, frameY + 9)
 					self:zoomto(capWideScale(320,490)/2.2,20)
 					self:halign(0):valign(0)
 					self:diffusealpha(0)
@@ -527,9 +552,44 @@ local function scoreBoard(pn, position)
 				end,
 			},
 			LoadFont("Common Large") .. {
+				Name = "msdTextExplain",
+			InitCommand = function(self)
+				self:xy(frameX + frameWidth - 170, frameY + 45)
+				self:zoom(0.2)
+				self:settext("MSD")
+			end,
+			},
+			LoadFont("Common Large") .. {
+				Name = "ssrTextExplain",
+			InitCommand = function(self)
+				self:xy(frameX + frameWidth - 20, frameY + 45)
+				self:zoom(0.2)
+				self:settext("SSR")
+			end, 
+			},
+			LoadFont("Common Large") .. {
+				Name = "Grade",
+			InitCommand = function(self)
+				self:xy(frameX + 30, frameY + 30)
+				self:zoom(0.75)
+				self:maxwidth(70)
+				self:settext("")
+			end, 
+			BeginCommand = function(self)
+				self:queuecommand("Set")
+			end,
+			SetCommand = function(self)
+				self:settext(getGradeStrings(graderaw))
+				self:diffuse(getGradeColor(graderaw))
+			end,
+			ScoreChangedMessageCommand = function(self)
+				self:queuecommand("Set")
+			end,
+			},
+			LoadFont("Common Large") .. {
 				Name = "NormalText",
 				InitCommand = function(self)
-					self:xy(frameX + 3, frameY + 9)
+					self:xy(frameX + 70, frameY + 9)
 					self:zoom(0.45)
 					self:halign(0):valign(0)
 					self:maxwidth(capWideScale(320, 500))
@@ -595,7 +655,7 @@ local function scoreBoard(pn, position)
 			LoadFont("Common Large") ..	{-- high precision rollover
 				Name = "LongerText",
 				InitCommand = function(self)
-					self:xy(frameX + 3, frameY + 9)
+					self:xy(frameX + 70, frameY + 9)
 					self:zoom(0.45)
 					self:halign(0):valign(0)
 					self:maxwidth(capWideScale(320, 500))
@@ -1090,61 +1150,6 @@ local function scoreBoard(pn, position)
 		},
 	}
 
-	local radars = {"Holds", "Mines"}
-	local radars_translated = {
-		Holds = THEME:GetString("RadarCategory", "Holds"),
-		Mines = THEME:GetString("RadarCategory", "Mines")
-	}
-	local function radarEntry(i)
-		return Def.ActorFrame {
-			Name = "Radar"..radars[i],
-
-			LoadFont("Common Normal") .. {
-				InitCommand = function(self)
-					self:xy(frameX, frameY + 195 + 13 * i)
-					self:zoom(0.4)
-					self:halign(0)
-					self:settext(radars_translated[radars[i]])
-				end,
-			},
-			LoadFont("Common Normal") .. {
-				InitCommand = function(self)
-					self:xy(frameWidth / 2.6, frameY + 195 + 13 * i)
-					self:zoom(0.4)
-					self:halign(1)
-				end,
-				BeginCommand = function(self)
-					self:queuecommand("Set")
-				end,
-				SetCommand = function(self)
-					self:settextf(
-						"%03d/%03d",
-						gatherRadarValue("RadarCategory_" .. radars[i], score),
-						score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
-					)
-				end,
-				ScoreChangedMessageCommand = function(self)
-					self:queuecommand("Set")
-				end,
-			},
-		}
-	end
-	local rb = Def.ActorFrame {
-		Name = "RadarContainer",
-		Def.Quad {
-			Name = "BG",
-			InitCommand = function(self)
-				self:xy(frameX - 5, frameY + 226):zoomto(frameWidth / 2 - 10, 56.5)
-				self:halign(0):valign(0)
-				self:diffusealpha(0)
-			end,
-		},
-	}
-	for i = 1, #radars do
-		rb[#rb+1] = radarEntry(i)
-	end
-	t[#t+1] = rb
-
 	local function scoreStatistics(score)
 		local replay = usingCustomWindows and REPLAYS:GetActiveReplay() or score:GetReplay()
 		replay:LoadAllData()
@@ -1201,6 +1206,70 @@ local function scoreBoard(pn, position)
 		}
 	end
 
+	local radars = {"Mines"}
+	local radars_translated = {
+		Mines = "Mines Hitted: ",
+	}
+	
+	local function radarEntry(i)
+		return Def.ActorFrame {
+			Name = "Radar"..radars[i],
+
+			LoadFont("Common Normal") .. {
+				InitCommand = function(self)
+					self:xy(frameX, frameY + 200 + 10 * i)
+					self:zoom(0.4)
+					self:halign(0)
+					self:settext(radars_translated[radars[i]])
+				end,
+				BeginCommand = function(self)
+					self:queuecommand("Set")
+				end,
+				SetCommand = function(self)
+					self:settext(radars_translated[radars[i]])
+					local totalChart = score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
+
+					if totalChart == 0 then 
+						self:settext("")
+						return
+					end
+				end
+			},
+			LoadFont("Common Normal") .. {
+				InitCommand = function(self)
+					self:xy((frameWidth / 2) - 20 , frameY + 200 + 10 * i)
+					self:zoom(0.4)
+					self:halign(1)
+				end,
+				BeginCommand = function(self)
+					self:queuecommand("Set")
+				end,
+				SetCommand = function(self)
+					local userHit = gatherRadarValue("RadarCategory_" .. radars[i], score)
+					local totalChart = score:GetRadarPossible():GetValue("RadarCategory_" .. radars[i])
+
+					if totalChart == 0 then 
+						self:settext("")
+						return 
+					end
+
+					local total = totalChart - userHit
+					self:settext(total .. " " .. radars[i])
+				end,
+				ScoreChangedMessageCommand = function(self)
+					self:queuecommand("Set")
+				end,
+			},
+		}
+	end
+	local rb = Def.ActorFrame {
+		Name = "RadarContainer",
+	}
+	for i = 1, #radars do
+		rb[#rb+1] = radarEntry(i)
+	end
+	t[#t+1] = rb
+
 	-- stats stuff
 	local replay = score:GetReplay()
 	replay:LoadAllData()
@@ -1254,7 +1323,7 @@ local function scoreBoard(pn, position)
 			THEME:GetString("ScreenEvaluation", "LargestDev"),
 			THEME:GetString("ScreenEvaluation", "LeftCB"),
 			THEME:GetString("ScreenEvaluation", "RightCB"),
-			THEME:GetString("ScreenEvaluation", "MiddleCB")
+			"Highlight"
 		}
 		local statValues = {
 			wifeMean(devianceTable),
@@ -1264,12 +1333,15 @@ local function scoreBoard(pn, position)
 			cbr,
 			cbm
 		}
-		local frameWidthStat = SCREEN_CENTER_X + 20
-		local frameYStat = 65
+
+		local frameWidthStat = SCREEN_CENTER_X 
+		local framexstat = frameX + 15
+		local frameYStat = 190
 
 		-- if theres a middle lane, display its cbs too
-		local lines = ((ncol+1) % 2 == 0) and #statNames-1  or #statNames
-		local tzoom = lines == 5 and 0.4 or 0.3
+		local lines = #statNames
+		local tzoom = lines == 5 and 0.3 or 0.3
+		local ySpacing = lines == 5 and 10 or 8.5
 		local xSpacing = 76
 		local function statsLine(i)
 			return Def.ActorFrame {
@@ -1277,9 +1349,8 @@ local function scoreBoard(pn, position)
 				LoadFont("Common Normal") .. {
 					Name = "StatText",
 					InitCommand = function(self)
-						self:xy(frameWidthStat - 35 + xSpacing * i, frameYStat + 213)
+						self:xy(frameX + capWideScale(get43size(130), 350) + 70 * i, frameY + (174) + ySpacing)
 						self:zoom(tzoom)
-						self:halign(0)
 						self:settext(statNames[i])
 					end,
 				},
@@ -1291,15 +1362,20 @@ local function scoreBoard(pn, position)
 					SetCommand = function(self, params)
 						local statValues = scoreStatistics(params ~= nil and params.score or score)
 						if i < 4 then
-							self:xy(frameWidthStat + xSpacing * i, frameYStat + 224)
-							self:zoom(tzoom)
+							self:xy(framexstat + capWideScale(get43size(130), 350) + 70 * i, frameY + 185 + ySpacing)
+							self:zoom(tzoom * 1.39)
 							self:halign(1)
 							self:settextf("%5.2fms", statValues[i])
 						else
-							self:xy(frameWidthStat + xSpacing * i, frameYStat + 224)
-							self:zoom(tzoom)
+							self:xy(framexstat + capWideScale(get43size(130), 350) + 70 * i, frameY + 185 + ySpacing)
+							self:zoom(tzoom * 1.5)
 							self:halign(1)
-							self:settext(statValues[i])
+
+							if i ~= 6 then 
+								self:settext(statValues[i])
+							else
+								self:settext("")
+							end
 						end
 					end,
 					ChangeScoreCommand = function(self, params)
@@ -1326,15 +1402,6 @@ local function scoreBoard(pn, position)
 
 		local sl = Def.ActorFrame {
 			Name = "ScoreStatsContainer",
-			Def.Quad {
-				Name = "BG",
-				InitCommand = function(self)
-					self:diffuse(getMainColor("frames")):diffusealpha(0.7)
-					self:xy(frameWidthStat, frameYStat + 205)
-					self:zoomto(404, 30)
-					self:halign(0):valign(0)
-				end,
-			},
 		}
 		for i = 1, lines do
 			sl[#sl+1] = statsLine(i)
@@ -1342,8 +1409,7 @@ local function scoreBoard(pn, position)
 		t[#t+1] = sl
 	end
 
-	
-	-- life graph
+		-- life graph
 	local function GraphDisplay()
 		return Def.ActorFrame {
 			Def.GraphDisplay {
@@ -1375,7 +1441,6 @@ local function scoreBoard(pn, position)
 		}
 	end
 
-	--EDIT LATER XY
 	-- combo graph
 	local function ComboGraph()
 		return Def.ActorFrame {
@@ -1384,10 +1449,11 @@ local function scoreBoard(pn, position)
 					self:Load("ComboGraph")
 				end,
 				BeginCommand = function(self)
+					self:diffusealpha(0)
 					local ss = SCREENMAN:GetTopScreen():GetStageStats()
 					self:Set(ss, ss:GetPlayerStageStats())
-					self:zoomto(405,15)
-					self:xy(SCREEN_CENTER_X + 73, SCREEN_BOTTOM - 180)
+					self:zoom(0.8)
+					self:xy(-22, -2)
 				end,
 				SetComboGraphMessageCommand = function(self)
 					self:Clear()
@@ -1404,12 +1470,11 @@ local function scoreBoard(pn, position)
 	return t
 end
 
+t[#t + 1] = LoadActor("../offsetplot")
+
 if GAMESTATE:IsPlayerEnabled() then
 	t[#t + 1] = scoreBoard(PLAYER_1, 0)
 end
-
-t[#t + 1] = LoadActor("../offsetplot")
-updateDiscordStatus(true)
 
 --poco
 t[#t+1] = Def.Actor {
@@ -1433,10 +1498,14 @@ t[#t+1] = Def.Actor {
             SOUND:StopMusic()
             SOUND:PlayMusicPart(randomsel, 0, 1000)
         else
-            ms.ok("No music found")
+            --ms.ok("No music found")
         end
     end
 }
 
+
+if idontknowhowtojumptrill then
+	t[#t + 1] = LoadActor("manipfactor")
+end
 
 return t

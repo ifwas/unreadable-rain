@@ -1,30 +1,66 @@
 local tzoom = 0.5
-local pdh = 48 * tzoom
+local wifetzoom = 0.4
+local pdh = (48 * 1.5) * tzoom
 local ygap = 2
 local packspaceY = pdh + ygap
 local currentCountry = "Global"
 
-local numscores = 13
+local cyear = Year()
+local cmonth = MonthOfYear() + 1
+local cday 
+local chour 
+local cminute 
+local csecond
+
+local motnt = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+local leapmnt = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+
+local numscores = 10
 local ind = 0
 local offx = 5
-local width = SCREEN_WIDTH * 0.56
+local width = 202
 local dwidth = width - offx * 2
 local height = (numscores + 2) * packspaceY - packspaceY / 3 -- account dumbly for header being moved up
 
-local adjx = 14
-local c0x = 10
-local c1x = 20 + c0x
+local adjx = 8
+local c0x = 5
+local c1x = 30 + c0x
 local c2x = c1x + (tzoom * 7 * adjx) -- guesswork adjustment for epxected text length
-local c5x = dwidth -- right aligned cols
+local c5x = dwidth - 4 -- right aligned cols
 local c4x = c5x - adjx - (tzoom * 3 * adjx) -- right aligned cols
 local c3x = c4x - adjx - (tzoom * 10 * adjx) -- right aligned cols
-local headeroff = packspaceY / 2
+local headeroff = (packspaceY / 2) - 10
 local row2yoff = 1
 local moving
 local cheese
 local collapsed = false
 
+local yup = 16
+local yup1 = 17 + yup
+
+
+
+
+
+--[[
+local frend = "/Themes/" .. THEME:GetCurThemeName() .. "/Graphics/lead/"
+local tableFriendLead = FILEMAN:GetDirListing(frend)
+
+local function isItFriend(user)
+	for i = 1, #tableFriendLead do
+		local assetName = tableFriendLead[i]
+		local d = string.sub(assetName, 1, #assetName - 4)
+		if d == user then 
+			return true
+		end
+	end
+	return false
+end
+]]
+
 local isGlobalRanking = true
+
+
 
 -- will eat any mousewheel inputs to scroll pages while mouse is over the background frame
 local function input(event)
@@ -102,6 +138,11 @@ local o = Def.ActorFrame {
 		if ind < 0 then
 			ind = 0
 		end
+
+		cday = DayOfMonth()
+		chour = Hour()
+		cminute = Minute()
+		csecond = Second()
 	end,
 	NextPageCommand = function(self)
 		ind = ind + numscores
@@ -111,191 +152,81 @@ local o = Def.ActorFrame {
 		ind = ind - numscores
 		self:queuecommand("Update")
 	end,
-	CollapseCommand = function(self)
-		tzoom = 0.5 * 0.75
-		pdh = 38 * tzoom
-		ygap = 2
-		packspaceY = pdh + ygap
-
-		numscores = 10
-		ind = 0
-		offx = 5
-		width = math.max(SCREEN_WIDTH * 0.25, 240)
-		dwidth = width - offx * 2
-		height = (numscores + 2) * packspaceY
-
-		adjx = 14
-		c0x = 10
-		c1x = 10 + c0x
-		c2x = c1x + (tzoom * 7 * adjx)
-		c5x = dwidth
-		c4x = c5x - adjx - (tzoom * 3 * adjx)
-		c3x = c4x - adjx - (tzoom * 10 * adjx)
-		headeroff = packspaceY / 2
-		row2yoff = 1
-		collapsed = true
-		self:diffusealpha(0.8)
-
-		if
-			-- a generic bounds check function that snaps an actor onto the screen or within specified coordinates should be added as an actor member, ie, not this -mina
-			FILTERMAN:grabposx("ScoreDisplay") <= 10 or FILTERMAN:grabposy("ScoreDisplay") <= 45 or
-				FILTERMAN:grabposx("ScoreDisplay") >= SCREEN_WIDTH - 60 or
-				FILTERMAN:grabposy("ScoreDisplay") >= SCREEN_HEIGHT - 45
-		 then
-			self:xy(10, 45)
-		else
-			self:LoadXY()
-		end
-
-		FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(true)
-		self:playcommand("Init")
-	end,
-	ExpandCommand = function(self)
-		tzoom = 0.5
-		pdh = 48 * tzoom
-		ygap = 2
-		packspaceY = pdh + ygap
-
-		numscores = 13
-		ind = 0
-		offx = 5
-		width = SCREEN_WIDTH * 0.56
-		dwidth = width - offx * 2
-		height = (numscores + 2) * packspaceY - packspaceY / 3
-
-		adjx = 14
-		c0x = 10
-		c1x = 20 + c0x
-		c2x = c1x + (tzoom * 7 * adjx) -- guesswork adjustment for epxected text length
-		c5x = dwidth -- right aligned cols
-		c4x = c5x - adjx - (tzoom * 3 * adjx) -- right aligned cols
-		c3x = c4x - adjx - (tzoom * 10 * adjx) -- right aligned cols
-		headeroff = packspaceY / 2
-		row2yoff = 1
-		collapsed = false
-		self:diffusealpha(1)
-		FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(false)
-		self:playcommand("Init")
-	end,
 	UIElements.QuadButton(1, 1) .. {-- this is a nonfunctional button to mask buttons behind the window
 		Name = "FrameDisplay",
 		InitCommand = function(self)
-			self:zoomto(width, height - headeroff):halign(0):valign(0):diffuse(getMainColor("tabs"))
-		end,
-		MouseRightClickMessageCommand = function(self)
-			if isOver(self) and not collapsed then
-				FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(true)
-				self:GetParent():GetParent():playcommand("Collapse")
-			elseif isOver(self) then
-				self:GetParent():GetParent():playcommand("Expand")
-			end
+			self:zoomto(width, height - headeroff):halign(0):valign(0):diffusealpha(0)
 		end
 	},
-	-- headers
-	Def.Quad {
-		Name = "HeaderBar",
+	Def.Sprite {
+		Name = "RequestLoop",
+		Texture = THEME:GetPathG("", "wait"),
 		InitCommand = function(self)
-			self:zoomto(width, pdh - 8 * tzoom):halign(0):diffuse(getMainColor("frames")):diffusealpha(0.5):valign(0)
+			self:xy(98, headeroff + 200):zoomto(50,50):halign(0.5):valign(0.5)
+			self:diffuse(Brightness(getMainColor("positive"),0.6))
+			self:diffusealpha(0.4)
+			self:spin():effectclock("timerglobal")
+			self:visible(false)
 		end
-	},
-	-- grabby thing
-	UIElements.QuadButton(1, 1) .. {
-		InitCommand = function(self)
-			self:valign(1):halign(0)
-			self:xy(dwidth / 4, headeroff):zoomto(dwidth - dwidth / 4, pdh - 8 * tzoom)
-			self:diffuse(getMainColor("frames"))
-			self:diffusealpha(0)
-		end,
-		CollapseCommand = function(self)
-			self:zoomto(dwidth / 2, pdh / 2):diffusealpha(0.5)
-		end,
-		ExpandCommand = function(self)
-			self:diffusealpha(0):zoomto(400, 400):valign(0.5):halign(0.5)
-		end,
-		MouseDownCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" and collapsed then
-				self:diffusealpha(0.6):diffuse(color("#fafafa"))
-				self.initialClickX = params.MouseX - self:GetTrueX()
-				self.initialClickY = params.MouseY - self:GetTrueY()
-			elseif params.event == "DeviceButton_right mouse button" and collapsed then
-				self:zoomto(dwidth / 2, pdh / 2):valign(1):halign(0)
-			end
-		end,
-		MouseUpCommand = function(self, params)
-			self.gettindragged = false
-			if params.event == "DeviceButton_left mouse button" and collapsed then
-				self:diffusealpha(0.5):diffuse(getMainColor("frames"))
-			end
-		end,
-		MouseReleaseCommand = function(self, params)
-			self.gettindragged = false
-			if params.event == "DeviceButton_left mouse button" and collapsed then
-				self:diffusealpha(0.5):diffuse(getMainColor("frames"))
-			end
-		end,
-		MouseDragCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" and collapsed then
-				local nx = params.MouseX - self:GetX() - self.initialClickX or 0
-				local ny = params.MouseY - self:GetY() - self.initialClickY or 0
-				self:GetParent():SaveXY(nx, ny)
-				self:GetParent():LoadXY()
-				self.gettindragged = true
-			end
-		end,
-		MouseOutCommand = function(self)
-			if not collapsed then return end
-			if self.gettindragged then return end -- dragging fast triggers this
-			self:diffuse(getMainColor("frames")):diffusealpha(0.5)
-		end,
-		MouseOverCommand = function(self)
-			if not collapsed then return end
-			self:diffusealpha(1)
-		end,
 	},
 	LoadFont("Common normal") .. {
 		-- informational text about online scores
 		Name = "RequestStatus",
 		InitCommand = function(self)
-			if collapsed then
-				self:xy(c1x, headeroff + 15):zoom(tzoom):halign(0)
-			else
-				self:xy(c1x, headeroff + 25):zoom(tzoom):halign(0)
-			end
+			self:xy(c1x, headeroff + 25):zoom(tzoom):halign(0)
 		end,
 		UpdateCommand = function(self)
+			local somethinwrong = false
 			local numberofscores = scoretable ~= nil and #scoretable or 0
 			local online = DLMAN:IsLoggedIn()
 			if not GAMESTATE:GetCurrentSong() then
 				self:settext("")
 			elseif not online and scoretable ~= nil and #scoretable == 0 then
+				somethinwrong = true
 				self:settext(translated_info["LoginToView"])
 			else
 				if scoretable ~= nil and #scoretable == 0 then
-					self:settext(translated_info["NoScoresFound"])
+					somethinwrong = true
 				elseif scoretable == nil then
+					somethinwrong = true
 					self:settext("Chart is not ranked")
 				else
 					self:settext("")
 				end
 			end
+
+			if somethinwrong == true then 
+				self:GetParent():GetChild("RequestLoop"):visible(true)
+			else
+				self:GetParent():GetChild("RequestLoop"):visible(false)
+			end
 		end,
 		CurrentSongChangedMessageCommand = function(self)
+			local fine = false
 			local online = DLMAN:IsLoggedIn()
 			if not GAMESTATE:GetCurrentSong() then
 				self:settext("")
 			elseif not online and scoretable ~= nil and #scoretable == 0 then
+				fine = true
 				self:settext(translated_info["LoginToView"])
 			elseif scoretable == nil then
+				fine = true
 				self:settext("Chart is not ranked")
 			else
-				self:settext(translated_info["NoScoresFound"])
+				fine = true
+			end
+
+			if fine == true then 
+				self:GetParent():GetChild("RequestLoop"):visible(true)
+			else
+				self:GetParent():GetChild("RequestLoop"):visible(false)
 			end
 		end
 	},
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		--current rate toggle
 		InitCommand = function(self)
-			self:xy(c5x, headeroff):zoom(tzoom):halign(1):valign(1)
+			self:xy(c5x - 3, headeroff + 15):zoom(tzoom):halign(1):valign(1)
 			self:diffuse(getMainColor("positive"))
 		end,
 		MouseOverCommand = function(self)
@@ -308,7 +239,7 @@ local o = Def.ActorFrame {
 			if DLMAN:GetCurrentRateFilter() then
 				self:settext(filts[2])
 			else
-				self:settext(filts[1])
+				self:settext("Top MSD")
 			end
 		end,
 		MouseDownCommand = function(self, params)
@@ -323,11 +254,7 @@ local o = Def.ActorFrame {
 		--top score/all score toggle
 		InitCommand = function(self)
 			self:diffuse(getMainColor("positive"))
-			if collapsed then
-				self:xy(c5x - 175, headeroff):zoom(tzoom):halign(1):valign(1)
-			else
-				self:xy(c5x - capWideScale(160,190), headeroff):zoom(tzoom):halign(1):valign(1)
-			end
+			self:xy(c5x - capWideScale(160,180), headeroff + 15):zoom(tzoom):halign(0):valign(1)
 		end,
 		MouseOverCommand = function(self)
 			self:diffusealpha(hoverAlpha)
@@ -353,20 +280,14 @@ local o = Def.ActorFrame {
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		--ccon/off filter toggle
 		InitCommand = function(self)
-			self:diffuse(getMainColor("positive"))
-			if collapsed then
-				self:visible(false)
-				--self:xy(c5x - 110, headeroff):zoom(tzoom):halign(1):valign(1)
-			else
-				self:visible(true)
-				self:xy(c5x - capWideScale(80,96), headeroff):zoom(tzoom):halign(1):valign(1)
-			end
+			self:diffuse(getMainColor("positive")):diffusealpha(0.1)
+			self:xy(c5x, headeroff):zoom(tzoom):halign(1):valign(1)
 		end,
 		MouseOverCommand = function(self)
 			self:diffusealpha(hoverAlpha)
 		end,
 		MouseOutCommand = function(self)
-			self:diffusealpha(1)
+			self:diffusealpha(0.1)
 		end,
 		UpdateCommand = function(self)
 			if DLMAN:GetValidFilter() then
@@ -391,17 +312,22 @@ local function makeScoreDisplay(i)
 	local o = Def.ActorFrame {
 		Name = "Scoredisplay_"..i,
 		InitCommand = function(self)
-			self:y(packspaceY * i + headeroff)
+			self:xy(5,packspaceY * i + headeroff)
+			self:diffusealpha(0)
 			if i > numscores or hs == nil then
 				self:visible(false)
 			else
 				self:visible(true)
+				self:playcommand("showScoreItem")
 			end
 		end,
 		CurrentSongChangedMessageCommand = function(self)
+			self:diffusealpha(0)
 			self:visible(false)
 		end,
 		UpdateCommand = function(self)
+			self:finishtweening()
+			self:diffusealpha(0)
 			if scoretable ~= nil then
 				hs = scoretable[(i + ind)]
 			else
@@ -410,38 +336,36 @@ local function makeScoreDisplay(i)
 			if hs and i <= numscores then
 				self:visible(true)
 				self:playcommand("Display")
+				self:playcommand("showScoreItem")
 			else
 				self:visible(false)
 			end
 		end,
+		showScoreItemCommand = function(self)
+			self:y(packspaceY * i + headeroff + 10):decelerate(0.2 + 0.03 * i):diffusealpha(1):y(packspaceY * i + headeroff)
+		end,
+		NestedTabChangedMessageCommand = function(self)
+			if i > numscores or hs == nil then
+				self:visible(false)
+			else
+				self:visible(true)
+				self:playcommand("Display")
+				self:playcommand("showScoreItem")
+			end
+		end,
 		UIElements.QuadButton(1, 1) .. {-- this is a non functional button to mask buttons behind the box
 			InitCommand = function(self)
-				self:x(offx):zoomto(dwidth, pdh):halign(0)
+				self:zoomto(dwidth, pdh):halign(0)
 			end,
 			DisplayCommand = function(self)
-				self:diffuse(color("#111111CC"))
-				self:diffusealpha(0.8)
+				self:diffuse(color("#181818cc"))
+				self:diffusealpha(1)
 			end,
-		},
-		LoadFont("Common normal") .. {
-			--rank
-			InitCommand = function(self)
-				self:x(c0x):zoom(tzoom):halign(0):valign(0)
-				if collapsed then
-					self:x(c0x):zoom(tzoom):halign(0):valign(0.5)
-				end
-			end,
-			DisplayCommand = function(self)
-				self:settextf("%i.", i + ind)
-			end
 		},
 		LoadFont("Common normal") .. {
 			--ssr
 			InitCommand = function(self)
-				self:x(c2x - c1x + offx):zoom(tzoom + 0.05):halign(0.5):valign(1)
-				if collapsed then
-					self:x(46):zoom(tzoom + 0.15):halign(0.5):valign(0.5):maxwidth(20 / tzoom)
-				end
+				self:x(yup):zoom(0.45):halign(0.5):valign(1)
 			end,
 			DisplayCommand = function(self)
 				local ssr = hs:GetSkillsetSSR("Overall")
@@ -451,29 +375,27 @@ local function makeScoreDisplay(i)
 		LoadFont("Common normal") .. {
 			--rate
 			InitCommand = function(self)
-				self:x(c2x - c1x + offx):zoom(tzoom - 0.05):halign(0.5):valign(0):addy(row2yoff)
-				if collapsed then
-					self:x(c4x - 14):zoom(tzoom):halign(1):valign(0.5):addy(-row2yoff):maxwidth(30 / tzoom)
-				end
+				self:xy(yup, 2):zoom(tzoom - 0.1):halign(0.5):valign(0)
 			end,
 			DisplayCommand = function(self)
 				local ratestring = string.format("%.2f", hs:GetMusicRate()):gsub("%.?0$", "") .. "x"
 				self:settext(ratestring)
-			end,
-			ExpandCommand = function(self)
-				self:addy(-row2yoff)
 			end
 		},
 		UIElements.TextToolTip(1, 1, "Common Normal") .. {
 			Name = "Burt" .. i,
 			InitCommand = function(self)
-				self:x(c2x):zoom(tzoom + 0.1):maxwidth((c3x - c2x - capWideScale(10, 40)) / tzoom):halign(0):valign(1)
-				if collapsed then
-					self:x(c2x + 10):maxwidth(60 / tzoom):zoom(tzoom + 0.2):valign(0.5)
-				end
+				self:x(yup1):zoom(tzoom + 0.04):maxwidth((dwidth) / tzoom):halign(0):valign(1)
 			end,
 			DisplayCommand = function(self)
-				self:settext(hs:GetDisplayName())
+				self:x(yup1)
+				self:zoom(tzoom + 0.04)
+				local nameeee = hs:GetDisplayName()
+				if #nameeee > 13 then
+					self:zoom(tzoom * (13 / #nameeee) + 0.04)
+				end
+				self:settext(nameeee)
+
 				if not hs:GetEtternaValid() then
 					self:diffuse(color("#F0EEA6"))
 				else
@@ -495,16 +417,23 @@ local function makeScoreDisplay(i)
 		UIElements.TextToolTip(1, 1, "Common Normal") .. {
 			Name = "Ernie" .. i,
 			InitCommand = function(self)
-				if not collapsed then
-					self:x(c2x):zoom(tzoom - 0.05):halign(0):valign(0):maxwidth(width / 2 / tzoom):addy(row2yoff)
-				end
+				self:xy(yup1, 4):zoom(wifetzoom - 0.05):halign(0):valign(0):maxwidth(width / wifetzoom / 1.4)
 			end,
 			DisplayCommand = function(self)
-				self:settext(hs:GetJudgmentString())
+				local marv = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W1")
+				local perfects = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W2")
+				local greats = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W3")
+				local goods = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W4")
+				local boo = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_W5")
+				local miss = scoretable[i + ind]:GetTapNoteScore("TapNoteScore_Miss")
+				local combo = scoretable[i + ind]:GetMaxCombo()
+
+				self:settextf("%d / %d / %d / %d / %d / %d (%dx)", marv, perfects, greats, goods, boo, miss, combo)
+
 				if not hs:GetEtternaValid() then
 					self:diffuse(color("#F0EEA6"))
 				else
-					self:diffuse(getMainColor("positive"))
+					self:diffuse(color("#FFFFFF"))
 				end
 			end,
 			MouseOverCommand = function(self)
@@ -517,14 +446,37 @@ local function makeScoreDisplay(i)
 				if params.event == "DeviceButton_left mouse button" then
 					DLMAN:ShowScorePage(hs:GetDisplayName(), hs:GetScoreid())
 				end
-			end,
-			CollapseCommand = function(self)
-				self:visible(false)
-			end,
-			ExpandCommand = function(self)
-				self:visible(true):addy(-row2yoff)
 			end
 		},
+		--[[
+		Def.Sprite {
+			Name = "pfpFriend",
+			InitCommand = function(self)
+				self:x(yup1):scaletoclipped(12,12):halign(0):valign(1)
+			end,
+			DisplayCommand = function(self)
+				self:diffusealpha(0)
+				local d = hs:GetDisplayName()
+
+				if isItFriend(d) then
+					local aaaaaaaaaaaaaa = string.format(frend .. d .. ".png")
+					self:Load(aaaaaaaaaaaaaa)
+					self:diffusealpha(1)
+
+					local textUserName = self:GetParent():GetChild("Burt".. i)
+					textUserName:x(yup1 + 15)
+
+					if d ~= DLMAN:GetUsername() then
+						textUserName:diffuse(color("#a6f0a7"))
+					else
+						textUserName:diffuse(color("#ffffff"))
+					end
+				end 
+			end
+			
+
+		},
+		]]
 
 		--[[ --wife version display ... not 100% reliable
 		LoadFont("Common normal") .. {
@@ -549,13 +501,14 @@ local function makeScoreDisplay(i)
 			end
 		},
 		]]
-		UIElements.TextToolTip(1, 1, "Common Normal") .. {
+		UIElements.SpriteButton(1, 1) .. {
 			Name = "Replay" .. i,
+			Texture = THEME:GetPathG("", "showReplay"),
 			InitCommand = function(self)
 				if not collapsed then
-					self:x(capWideScale(c3x + 52, c3x)):zoom(tzoom - 0.05):halign(1):valign(0):maxwidth(width / 2 / tzoom):addy(
+					self:x(c3x + 25):zoom(tzoom * 1):halign(1):valign(1):addy(
 						row2yoff
-					):diffuse(getMainColor("enabled"))
+					)
 				end
 			end,
 			BeginCommand = function(self)
@@ -566,9 +519,9 @@ local function makeScoreDisplay(i)
 			DisplayCommand = function(self)
 				if GAMESTATE:GetCurrentSteps() then
 					if hs:HasReplayData() then
-						self:settext(translated_info["Watch"])
+						self:diffusealpha(1)
 					else
-						self:settext("")
+						self:diffusealpha(0)
 					end
 				end
 			end,
@@ -591,12 +544,6 @@ local function makeScoreDisplay(i)
 						end
 					)
 				end
-			end,
-			CollapseCommand = function(self)
-				self:visible(false)
-			end,
-			ExpandCommand = function(self)
-				self:visible(true):addy(-row2yoff)
 			end
 		},
 		UIElements.QuadButton(1, 1) .. {
@@ -610,12 +557,14 @@ local function makeScoreDisplay(i)
 			MouseOverCommand = function(self)
 				if self:IsVisible() then
 					self:GetParent():GetChild("NormalText"):visible(false)
+					self:GetParent():GetChild("Replay" .. i):x(c3x + 10)
 					self:GetParent():GetChild("LongerText"):visible(true)
 				end
 			end,
 			MouseOutCommand = function(self)
 				if self:IsVisible() then
 					self:GetParent():GetChild("NormalText"):visible(true)
+					self:GetParent():GetChild("Replay" .. i):x(c3x + 25)
 					self:GetParent():GetChild("LongerText"):visible(false)
 				end
 			end,
@@ -638,7 +587,7 @@ local function makeScoreDisplay(i)
 			--percent
 			Name="NormalText",
 			InitCommand = function(self)
-				self:x(c5x):zoom(tzoom + 0.15):halign(1):valign(1)
+				self:x(c5x):zoom(tzoom):halign(1):valign(1)
 				if collapsed then
 					self:x(c5x):zoom(tzoom + 0.15):halign(1):valign(0.5):maxwidth(30 / tzoom)
 				end
@@ -651,7 +600,7 @@ local function makeScoreDisplay(i)
 			--percent
 			Name="LongerText",
 			InitCommand = function(self)
-				self:x(c5x):zoom(tzoom + 0.15):halign(1):valign(1)
+				self:x(c5x):zoom(tzoom):halign(1):valign(1)
 				if collapsed then
 					self:x(c5x):zoom(tzoom + 0.15):halign(1):valign(0.5):maxwidth(30 / tzoom)
 				end
@@ -663,25 +612,52 @@ local function makeScoreDisplay(i)
 				self:diffuse(byGrade(hs:GetWifeGrade()))
 			end
 		},
-		LoadFont("Common normal") .. {
+		UIElements.TextToolTip(1, 1, "Common Normal") .. {
 			--date
 			InitCommand = function(self)
-				if not collapsed then
-					self:x(c5x):zoom(tzoom - 0.05):halign(1):valign(0):maxwidth(width / 4 / tzoom):addy(row2yoff)
-				end
+				self:xy(c5x, 4):zoom(tzoom - 0.05):halign(1):valign(0):maxwidth(width / 4 / tzoom)
 			end,
 			DisplayCommand = function(self)
-				if IsUsingWideScreen() then
-					self:settext(hs:GetDate())
-				else
-					self:settext(hs:GetDate():sub(1, 10))
+				local mhmyep = ""
+				local syear = hs:GetDate():sub(1, 4)
+				local smonth = hs:GetDate():sub(6, 7)
+				local sday = hs:GetDate():sub(9, 10)
+				local shour = hs:GetDate():sub(12, 13)
+				local sminutes = hs:GetDate():sub(15, 16)
+				local sseconds = hs:GetDate():sub(18, 19)
+
+
+				local passedyear = cyear - syear
+				local passedmonth = cmonth - smonth
+				local passeday = cday - sday
+				local passedhour = chour - shour
+				local passedmin = cminute - sminutes
+				local passedsec = csecond - sseconds
+
+				if passedyear ~= 0 then
+					mhmyep = passedyear .. "y"
+				elseif passedmonth >= 1 then
+					mhmyep = passedmonth .. "mo"
+				elseif passeday ~= 0 then
+					mhmyep = passeday .. "d"
+				elseif passedhour ~= 0 then
+					mhmyep = passedhour .. "h"
+				elseif passedmin ~= 0 then
+					mhmyep = passedmin .. "min"
+				elseif passedsec ~= 0 then
+					mhmyep = passedsec .. "sec"
 				end
+
+				self:settext(mhmyep)
 			end,
-			CollapseCommand = function(self)
-				self:visible(false)
+			MouseOverCommand = function(self)
+				local e = hs:GetDate()
+				TOOLTIP:SwitchSide(false)
+				TOOLTIP:SetText(e)
+				TOOLTIP:Show()
 			end,
-			ExpandCommand = function(self)
-				self:visible(true):addy(-row2yoff)
+			MouseOutCommand = function(self)
+				TOOLTIP:Hide()
 			end
 		}
 	}

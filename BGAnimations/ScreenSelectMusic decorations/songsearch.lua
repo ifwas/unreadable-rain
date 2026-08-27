@@ -1,56 +1,12 @@
 local searchstring = ""
 local frameX = 10
-local frameY = 300
+local frameY = 40
 local active = false
 local whee
 local lastsearchstring = ""
 local instantSearch = themeConfig:get_data().global.InstantSearch
 local IgnoreTabInput = themeConfig:get_data().global.IgnoreTabInput
 
-local function searchInput(event)
-	if event.type ~= "InputEventType_Release" and active == true then
-		if event.button == "Back" then
-			local tind = getTabIndex()
-			searchstring = ""
-			whee:SongSearch(searchstring)
-			resetTabIndex(0)
-			MESSAGEMAN:Broadcast("TabChanged", {from = tind, to = 0})
-			MESSAGEMAN:Broadcast("EndingSearch")
-		elseif event.button == "Start" then
-			local tind = getTabIndex()
-			resetTabIndex(0)
-			if not instantSearch then
-				whee:SongSearch(searchstring)
-			end
-			MESSAGEMAN:Broadcast("EndingSearch")
-			MESSAGEMAN:Broadcast("TabChanged", {from = tind, to = 0})
-		elseif event.DeviceInput.button == "DeviceButton_space" then -- add space to the string
-			searchstring = searchstring .. " "
-		elseif event.DeviceInput.button == "DeviceButton_backspace" then
-			searchstring = searchstring:sub(1, -2) -- remove the last element of the string
-		elseif event.DeviceInput.button == "DeviceButton_delete" then
-			searchstring = ""
-		else
-			local CtrlPressed = INPUTFILTER:IsControlPressed()
-			if event.DeviceInput.button == "DeviceButton_v" and CtrlPressed then
-				searchstring = searchstring .. Arch.getClipboard()
-			elseif
-			--if not nil and (not a number or (ctrl pressed and not online))
-				event.char and event.char:match('[%%%+%-%!%@%#%$%^%&%*%(%)%=%_%.%,%:%;%\'%"%>%<%?%/%~%|%w%[%]%{%}%`%\\]') and
-					(not tonumber(event.char) or CtrlPressed or IgnoreTabInput > 1)
-			 then
-				searchstring = searchstring .. event.char
-			end
-		end
-		if lastsearchstring ~= searchstring then
-			MESSAGEMAN:Broadcast("UpdateString")
-			if instantSearch then
-				whee:SongSearch(searchstring)
-			end
-			lastsearchstring = searchstring
-		end
-	end
-end
 
 local translated_info = {
 	Active = THEME:GetString("TabSearch", "Active"),
@@ -63,22 +19,61 @@ local translated_info = {
 	ExplainSuperSearch = THEME:GetString("TabSearch","ExplainSuperSearch"),
 }
 
+--stuff for slider debug
+local quadxpos = SCREEN_CENTER_X
+local quadypos = SCREEN_CENTER_Y
+
+local filterCategoryLimits = {
+        { 0, 40 },  -- Overall
+        { 0, 40 },  -- Stream
+        { 0, 40 },  -- Jumpstream
+        { 0, 40 },  -- Handstream
+        { 0, 40 },  -- Stamina
+        { 0, 40 },  -- JackSpeed
+        { 0, 40 },  -- Chordjacks
+        { 0, 40 },  -- Technical
+        { 0, 600 },  -- Length (in seconds)
+        { 85, 100 }, -- Percent
+}
+
+--something something to set things nice in the c++ side of things, or at least that's what the rebirth guy says 
+local function setSSFilter(ss, lb, ub)
+    FILTERMAN:SetSSFilter(lb, ss, 0)
+    FILTERMAN:SetSSFilter(ub, ss, 1)
+end
+
+--same thing but to get values ?
+local function getSSFilter(ss)
+    return FILTERMAN:GetSSFilter(ss, 0), FILTERMAN:GetSSFilter(ss, 1)
+end
+
+local function dragqueen(actor, params)
+	local localX = clamp(params.MouseX, 0, SCREEN_WIDTH)
+	local localY = clamp(params.MouseY, 0, SCREEN_HEIGHT)
+	quadxpos = localX
+	quadypos = localY
+	actor:xy(localX, localY)
+end
+	
+
+local grabbingQuad = nil
+
+--this is the stuff that's on the frame (filters)
 local t = Def.ActorFrame {
 	BeginCommand = function(self)
 		self:visible(false)
 		self:queuecommand("Set")
 		whee = SCREENMAN:GetTopScreen():GetMusicWheel()
-		SCREENMAN:GetTopScreen():AddInputCallback(searchInput)
 	end,
 	OffCommand = function(self)
-		self:bouncebegin(0.2):xy(-500, 0):diffusealpha(0)
+		self:smooth(0.2):diffusealpha(0)
 		self:sleep(0.04):queuecommand("Invis")
 	end,
 	InvisCommand= function(self)
 		self:visible(false)
 	end,
 	OnCommand = function(self)
-		self:bouncebegin(0.2):xy(0, 0):diffusealpha(1)
+		self:smooth(0.2):diffusealpha(1)
 	end,
 	SetCommand = function(self)
 		self:finishtweening()
@@ -90,10 +85,12 @@ local t = Def.ActorFrame {
 			whee:Move(0)
 			SCREENMAN:set_input_redirected(PLAYER_1, true)
 			MESSAGEMAN:Broadcast("RefreshSearchResults")
+			FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(true)
 		else
 			self:queuecommand("Off")
 			active = false
 			SCREENMAN:set_input_redirected(PLAYER_1, false)
+			FILTERMAN:HelpImTrappedInAChineseFortuneCodingFactory(false)
 		end
 	end,
 	TabChangedMessageCommand = function(self)
@@ -101,7 +98,7 @@ local t = Def.ActorFrame {
 	end,
 	LoadFont("Common Large") .. {
 		InitCommand = function(self)
-			self:xy(frameX + 250 - capWideScale(get43size(95), 10), frameY - 93):zoom(0.7):halign(0.5):maxwidth(470)
+			self:xy(frameX - 3, frameY + 4):zoom(0.375):halign(0):maxwidth(470)
 		end,
 		SetCommand = function(self)
 			if active then
@@ -118,65 +115,76 @@ local t = Def.ActorFrame {
 			self:queuecommand("Set")
 		end
 	},
-	Def.Quad {
-		InitCommand = function(self)
-			self:xy(frameX - capWideScale(3.5,-3.5), frameY - 46):zoomto(capWideScale(362.5,472), 44):align(0,0.5):diffuse(getMainColor("tabs"))
-		end,
-	},
 	LoadFont("Common Large") .. {
 		InitCommand = function(self)
-			self:xy(frameX + 250 - capWideScale(get43size(95), 10), frameY - 50):zoom(0.7)
-			self:halign(0.5):maxwidth(capWideScale(500,650))
+			self:xy(frameX - 3, frameY + 18):zoom(0.175):halign(0):maxwidth(470):diffusealpha(0.4)
 		end,
 		SetCommand = function(self)
-			self:settext(searchstring)
+			if active then
+				self:settext("watcha' looking for?")
+			else
+				self:settext("")
+			end
 		end,
 		UpdateStringMessageCommand = function(self)
 			self:queuecommand("Set")
 		end
 	},
+
+	--[[
 	LoadFont("Common Large") .. {
 		InitCommand = function(self)
-			self:xy(frameX + 20, frameY - 200):zoom(0.4):halign(0)
-			self:settext(translated_info["ExplainStart"])
-		end
+			self:xy(frameX - 3, frameY + 40):zoom(0.175):halign(0):maxwidth(470):diffusealpha(0.4)
+		end,
+		SetCommand = function(self)
+			if active then
+				self:settext(quadxpos)
+			else
+				self:settext("")
+			end
+		end,
 	},
-	LoadFont("Common Large") .. {
+	]]
+}
+
+
+local sl = Def.ActorFrame{
+	Name = "slindingQuad",
+	UIElements.QuadButton(1, 1) .. {
 		InitCommand = function(self)
-			self:xy(frameX + 20, frameY - 175):zoom(0.4):halign(0)
-			self:settext(translated_info["ExplainBack"])
-		end
-	},
-	LoadFont("Common Large") .. {
-		InitCommand = function(self)
-			self:xy(frameX + 20, frameY - 150):zoom(0.4):halign(0)
-			self:settext(translated_info["ExplainDel"])
-		end
-	},
-	LoadFont("Common Normal") .. {
-		InitCommand = function(self)
-			self:xy(frameX + 20, frameY):zoom(0.5):halign(0)
-			local framexoffset = 20 - capWideScale(3.5,-3.5)
-			self:maxwidth((capWideScale(362.5,472) - framexoffset) / 0.5)
-			self:settext(translated_info["ExplainLimit"])
-		end
-	},
-	LoadFont("Common Normal") .. {
-		InitCommand = function(self)
-			self:xy(frameX + 20, frameY + 15):zoom(0.5):align(0,0)
-			local framexoffset = 20 - capWideScale(3.5,-3.5)
-			self:maxwidth((capWideScale(362.5,472) - framexoffset) / 0.5)
-			self:settext(translated_info["ExplainNumInput"])
-		end
-	},
-	LoadFont("Common Normal") .. {
-		InitCommand = function(self)
-			self:xy(frameX + 20, frameY + 50):zoom(0.5):align(0,0)
-			local framexoffset = 20 - capWideScale(3.5,-3.5)
-			self:maxwidth((capWideScale(362.5,472) - framexoffset) / 0.5)
-			self:settext(translated_info["ExplainSuperSearch"])
-		end
+			self:xy(quadxpos, quadypos):zoomto(50,50)
+		end,
+		MouseDownCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+
+			if grabbedDot == nil then
+				local localX = clamp(params.MouseX, 0, SCREEN_WIDTH)
+				local localY = clamp(params.MouseY, 0, SCREEN_HEIGHT)
+				quadxpos = localX
+				quadypos = localY
+
+				self:xy(localX, localY)
+			end
+		end,
+		MouseHoldCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+
+			if grabbingQuad ~= nil  then 
+				dragqueen(self, params)
+			end
+		end,
+		MouseClickCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+			grabbingQuad = false
+		end,
+		MouseReleaseCommand = function(self, params)
+			if params.event ~= "DeviceButton_left mouse button" then return end
+			grabbingQuad = false
+		end,
+		
 	}
 }
+
+--t[#t + 1] = sl
 
 return t

@@ -12,6 +12,7 @@ local borderWidth = 2
 local shuri = 29
 
 -- splashy thing when you first start a song
+--i stole this
 local t = Def.ActorFrame {
 	Name = "Splashy",
 	DootCommand = function(self)
@@ -106,7 +107,6 @@ local t = Def.ActorFrame {
 			end
 			self:LoadBackground(bnpath)
 			end
-			--i have no idea why noire made it like that, ask him not me -ifwas
 			self:scaletoclipped(bannerWidth, bannerHeight)
 			self:x(SCREEN_LEFT+150)
 			self:y(SCREEN_CENTER_Y - 40)

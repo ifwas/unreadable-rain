@@ -5,14 +5,16 @@ local t =
 }
 
 local profile
-local hoverAlpha = 0.6
+local retarDED = 5.37 * (SCREEN_HEIGHT / 100)
 local profileName = THEME:GetString("GeneralInfo", "NoProfile")
 local playCount = 0
 local playTime = 0
 local noteCount = 0
 local numfaves = 0
-local AvatarX = 0
+local AvatarX = 1 + retarDED * -1
 local AvatarY = SCREEN_HEIGHT - 50
+
+local actualAvatarY = SCREEN_HEIGHT - retarDED
 local playerRating = 0
 local uploadbarwidth = 100
 local uploadbarheight = 10
@@ -63,20 +65,6 @@ local translated_info = {
 	SessionTime = THEME:GetString("GeneralInfo", "SessionTime"),
 	GroupsLoaded = THEME:GetString("GeneralInfo", "GroupsLoaded"),
 }
-
-local function UpdateTime(self)
-	local year = Year()
-	local month = MonthOfYear() + 1
-	local day = DayOfMonth()
-	local hour = Hour()
-	local minute = Minute()
-	local second = Second()
-	self:GetChild("CurrentTime"):settextf("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
-
-	local sessiontime = GAMESTATE:GetSessionTime()
-	self:GetChild("SessionTime"):settextf("%s: %s", translated_info["SessionTime"], SecondsToHHMMSS(sessiontime))
-	self:diffuse(nonButtonColor)
-end
 
 -- handle logging in
 local function loginStep1(self)
@@ -176,6 +164,9 @@ t[#t + 1] = Def.Actor {
 t[#t + 1] = Def.ActorFrame {
 	Name = "Avatar" .. PLAYER_1,
 	BeginCommand = function(self)
+		if SCREENMAN:GetTopScreen():GetName() == "ScreenNetEvaluation" or SCREENMAN:GetTopScreen():GetName() == "ScreenEvaluationNormal" then 
+			self:y(actualAvatarY * -1)
+		end
 		self:queuecommand("Set")
 	end,
 	SetCommand = function(self)
@@ -188,15 +179,15 @@ t[#t + 1] = Def.ActorFrame {
 	UIElements.SpriteButton(1, 1, nil) .. {
 		Name = "Image",
 		InitCommand = function(self)
-			self:visible(true):halign(0):valign(0):xy(AvatarX, AvatarY)
+			self:visible(true):halign(0):valign(0):xy(0, actualAvatarY)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("ModifyAvatar")
 		end,
 		ModifyAvatarCommand = function(self)
 			self:finishtweening()
-			self:Load(getAvatarPath(PLAYER_1))
-			self:zoomto(50, 50)
+			self:Load(getAvatarPath(PLAYER_1)):SetTextureFiltering(false)
+			self:zoomto(retarDED, retarDED)
 		end,
 		MouseDownCommand = function(self, params)
 			if params.event == "DeviceButton_left mouse button" and not SCREENMAN:get_input_redirected(PLAYER_1) then
@@ -209,8 +200,8 @@ t[#t + 1] = Def.ActorFrame {
 		Name = "Name",
 		InitCommand = function(self)
 			self:halign(0)
-			self:xy(AvatarX + 54, AvatarY + 8)
-			self:zoom(0.55)
+			self:xy(AvatarX + 54, AvatarY + 32)
+			self:zoom(0.52)
 			self:maxwidth(capWideScale(360,500))
 			self:maxheight(22)
 			self:diffuse(ButtonColor)
@@ -228,8 +219,11 @@ t[#t + 1] = Def.ActorFrame {
 		end,
 		MouseDownCommand = function(self, params)
 			if params.event == "DeviceButton_left mouse button" and not SCREENMAN:get_input_redirected(PLAYER_1) then
-				easyInputStringWithFunction(translated_info["NameChange"], 64, false, setnewdisplayname)
+				MESSAGEMAN:Broadcast("RenameProfilePls")
 			end
+		end,
+		RenameProfilePlsMessageCommand = function(self)
+			easyInputStringWithFunction(translated_info["NameChange"], 64, false, setnewdisplayname)
 		end,
 		ProfileRenamedMessageCommand = function(self, params)
 			self:settextf("%s: %5.2f", params.doot, playerRating)
@@ -244,7 +238,7 @@ t[#t + 1] = Def.ActorFrame {
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		Name = "loginlogout",
 		InitCommand = function(self)
-			self:xy(AvatarX + 55, SCREEN_BOTTOM - 10):halign(0):zoom(0.45):diffuse(ButtonColor)
+			self:xy(AvatarX - 100, AvatarY + 8):halign(0.5):zoom(0.45):diffuse(ButtonColor)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -285,6 +279,12 @@ t[#t + 1] = Def.ActorFrame {
 				self:settext("")
 			end
 		end,
+		LogOutViaProfileMessageCommand = function(self)
+			self:queuecommand("LogOut")
+		end,
+		LogInViaProfileMessageCommand = function(self)
+			loginStep1(self)
+		end,
 		MouseDownCommand = function(self, params)
 			if params.event == "DeviceButton_left mouse button" and not SCREENMAN:get_input_redirected(PLAYER_1) then
 				if DLMAN:IsLoggedIn() then
@@ -320,7 +320,7 @@ t[#t + 1] = Def.ActorFrame {
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		Name = "LoggedInAs",
 		InitCommand = function(self)
-			self:xy(AvatarX + 55, AvatarY + 24):halign(0):zoom(0.5):diffuse(ButtonColor)
+			self:xy(AvatarX + 54, AvatarY + 42):halign(0):zoom(0.3):diffuse(ButtonColor)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -340,13 +340,15 @@ t[#t + 1] = Def.ActorFrame {
 				self:halign(0.5)
 				return
 			end
+
 			self:settextf(
-				"%s %s (%5.2f: #%i)",
-				translated_info["LoggedInAs"],
+				"%s (%5.2f: #%i)",
 				DLMAN:GetUsername(),
 				DLMAN:GetSkillsetRating("Overall"),
 				DLMAN:GetSkillsetRank(ms.SkillSets[1])
 			)
+
+			MESSAGEMAN:Broadcast("setNameOnline")
 		end,
 		MouseDownCommand = function(self, params)
 			if params.event == "DeviceButton_left mouse button" then
@@ -365,7 +367,7 @@ t[#t + 1] = Def.ActorFrame {
 	},
 	UIElements.TextToolTip(1, 1, "Common Normal") .. {
 		InitCommand = function(self)
-			self:xy(SCREEN_CENTER_X - capWideScale(125,75), AvatarY + 41):halign(0.5):zoom(0.4):diffuse(ButtonColor)
+			self:xy(SCREEN_CENTER_X - capWideScale(250,250), AvatarY + 41):halign(0.5):zoom(0.3):diffuse(ButtonColor)
 		end,
 		BeginCommand = function(self)
 			self:queuecommand("Set")
@@ -404,86 +406,6 @@ t[#t + 1] = Def.ActorFrame {
 				end
 			end
 		end
-	},
-	UIElements.TextToolTip(1, 1, "Common Normal") .. {
-		Name = "Version",
-		InitCommand = function(self)
-			self:xy(SCREEN_WIDTH - 3, AvatarY + 8):halign(1):zoom(0.42):diffuse(ButtonColor)
-		end,
-		BeginCommand = function(self)
-			self:queuecommand("Set")
-		end,
-		SetCommand = function(self)
-			self:settext(GAMESTATE:GetEtternaVersion())
-		end,
-		MouseOverCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseOutCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseDownCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" then
-				DLMAN:ShowProjectReleases()
-			end
-		end
-	},
-	UIElements.TextToolTip(1, 1, "Common Normal") .. {
-		Name = "refreshbutton",
-		InitCommand = function(self)
-			self:xy(SCREEN_WIDTH - 3, AvatarY + 19):halign(1):zoom(0.35):diffuse(ButtonColor)
-		end,
-		BeginCommand = function(self)
-			self:queuecommand("Set")
-		end,
-		SetCommand = function(self)
-			self:settextf(translated_info["RefreshSongs"])
-		end,
-		MouseOverCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseOutCommand = function(self)
-			highlightIfOver(self)
-		end,
-		MouseDownCommand = function(self, params)
-			if params.event == "DeviceButton_left mouse button" then
-				SONGMAN:DifferentialReload()
-			end
-		end
-	},
-	UIElements.TextToolTip(1, 1, "Common Normal") .. {
-		InitCommand = function(self)
-			self:xy(SCREEN_WIDTH - 3, AvatarY + 30):halign(1):zoom(0.41):diffuse(nonButtonColor)
-			self:settext("Random Song")
-		end,
-    MouseOverCommand = function(self)
-		self:diffusealpha(hoverAlpha)
-	end,
-	MouseOutCommand = function(self)
-		self:diffusealpha(1)
-	end,
-	MouseDownCommand = function(self, params)
-		if params.event == "DeviceButton_left mouse button" then
-			local w = SCREENMAN:GetTopScreen():GetMusicWheel()
-
-			if INPUTFILTER:IsShiftPressed() and self.lastlastrandom ~= nil then
-
-				-- if the last random song wasnt filtered out, we can select it
-				-- so end early after jumping to it
-				if w:SelectSong(self.lastlastrandom) then
-					return
-				end
-				-- otherwise, just pick a new random song
-			end
-
-			local t = w:GetSongs()
-			if #t == 0 then return end
-			local random_song = t[math.random(#t)]
-			w:SelectSong(random_song)
-			self.lastlastrandom = self.lastrandom
-			self.lastrandom = random_song
-		end
-	end
 	},
 	-- ok coulda done this as a separate object to avoid copy paste but w.e
 	-- upload progress bar bg
@@ -561,25 +483,6 @@ t[#t + 1] = Def.ActorFrame {
 		LogOutMessageCommand = function(self)
 			self:playcommand("SequentialScoreUploadFinished")
 		end,
-	}
-}
-
-t[#t + 1] = Def.ActorFrame {
-	InitCommand = function(self)
-		self:SetUpdateFunction(UpdateTime)
-	end,
-	LoadFont("Common Normal") .. {
-		Name = "CurrentTime",
-		InitCommand = function(self)
-			self:xy(SCREEN_WIDTH - 3, SCREEN_BOTTOM - 3.5):halign(1):valign(1):zoom(0.45)
-		end
-	},
-
-	LoadFont("Common Normal") .. {
-		Name = "SessionTime",
-		InitCommand = function(self)
-			self:xy(AvatarX + 155, SCREEN_BOTTOM - 5):halign(0):valign(1):zoom(0.45)
-		end
 	}
 }
 

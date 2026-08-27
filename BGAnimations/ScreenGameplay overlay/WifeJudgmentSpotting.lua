@@ -183,9 +183,6 @@ local t =
 		else
 			GAMESTATE:SetAutoplay(false)
 		end
-		-- Discord thingies
-		updateDiscordStatus(false)
-
 		-- now playing thing for streamers
 		updateNowPlaying()
 
@@ -1089,8 +1086,11 @@ local hidth = 40
 local cd
 local loopStartPos
 local loopEndPos
+local ennnnnnnnabds = themeConfig:get_data().global.ChordDensityTimeStamp 
 
 local function handleRegionSetting(positionGiven)
+	if ennnnnnnnabds and not practiceMode then return end
+
 	-- don't allow a negative region 
 	-- internally it is limited to -2
 	-- the start delay is 2 seconds, so limit this to 0
@@ -1231,7 +1231,7 @@ local pm = Def.ActorFrame {
 			self:zoomto(wodth, hidth):halign(0):diffuse(color("1,1,1,1")):draworder(900)
 		end,
 		HighlightCommand = function(self) -- use the bg for detection but move the seek pointer -mina
-			if isOver(self) then
+			if isOver(self) and practiceMode then
 				local seek = self:GetParent():GetChild("Seek")
 				local seektext = self:GetParent():GetChild("Seektext")
 				local cdg = self:GetParent():GetChild("ChordDensityGraph")
@@ -1267,7 +1267,7 @@ local pm = Def.ActorFrame {
 }
 
 -- Load the CDGraph with a forced width parameter.
-pm[#pm + 1] = LoadActorWithParams("../_chorddensitygraph.lua", {width = wodth})
+pm[#pm + 1] = LoadActorWithParams("../_Verticalchorddensitygraph.lua", {width = wodth})
 
 -- more draw order shenanigans
 pm[#pm + 1] = LoadFont("Common Normal") .. {
@@ -1282,6 +1282,10 @@ pm[#pm + 1] = UIElements.QuadButton(1, 1) .. {
 	InitCommand = function(self)
 		self:zoomto(2, hidth):diffuse(color("1,.2,.5,1")):halign(0.5):draworder(1100)
 		self:z(2)
+
+		if not practiceMode then 
+			self:diffusealpha(0)
+		end
 	end,
 	MouseDownCommand = function(self, params)
 		if params.event == "DeviceButton_left mouse button" then
@@ -1329,9 +1333,9 @@ pm[#pm + 1] = Def.Quad {
 	end
 }
 
-if practiceMode and not isReplay then
+if (practiceMode and not isReplay) or ennnnnnnnabds then
 	t[#t + 1] = pm
-	if not allowedCustomization then
+	if not allowedCustomization and practiceMode then
 		-- enable pausing
 		t[#t+1] = UIElements.QuadButton(1, 1) .. {
 			Name = "PauseArea",
@@ -1342,7 +1346,7 @@ if practiceMode and not isReplay then
 				self:zoomto(SCREEN_WIDTH, SCREEN_HEIGHT)
 			end,
 			MouseDownCommand = function(self, params)
-				if params.event == "DeviceButton_right mouse button" then
+				if params.event == "DeviceButton_right mouse button" and practiceMode then --scary
 					local top = SCREENMAN:GetTopScreen()
 					if top then
 						top:TogglePause()

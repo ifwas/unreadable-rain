@@ -2,7 +2,7 @@ local t =
 	Def.ActorFrame {
 	BeginCommand = function(self)
 		self:visible(false):queuecommand("Set")
-		self:GetChild("GoalDisplay"):xy(10, 60)
+		self:GetChild("GoalDisplay"):xy(0, 60)
 	end,
 	OffCommand = function(self)
 		self:bouncebegin(0.2):xy(-500, SCREEN_TOP - 10):diffusealpha(0)

@@ -278,7 +278,6 @@ local t = Def.ActorFrame {
 	end
 }
 
-t[#t + 1] = LoadActor("_frame")
 t[#t + 1] =
 	LoadFont("Common Large") ..
 	{

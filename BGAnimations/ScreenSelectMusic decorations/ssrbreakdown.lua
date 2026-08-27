@@ -1,10 +1,10 @@
 --uuhhhhhhhhhhhh not sure if i have to credit it but this whole code is from spwncamp, so credits to poco for all of this, i just edited some things to make it work on til death
 local t = Def.ActorFrame{}
-local circleRadius = 100
+local circleRadius = 50
 local maxValue = 41
 local softCap = 40/30
-local frameWidth = capWideScale(250,300)
-local frameHeight = 270
+local frameWidth = capWideScale(80,100)
+local frameHeight = 300
 
 
 local SkillSets = {
@@ -39,8 +39,7 @@ local function makeMSDPoints(i)
 		SetStepsMessageCommand = function(self, params)
 			local steps = params.steps
 			local MSD = steps:GetMSD(getCurRateValue(), i+1)
-			self:settextf("%s\n%0.2f",SkillSets[i], MSD)
-			self:AddAttribute(#SkillSets[i], {Length = -1, Diffuse = getMSDColor(MSD)})
+			self:settextf("%s",SkillSets[i])
 		end
 	}
 end
@@ -107,21 +106,5 @@ t[#t+1] = Def.ActorMultiVertex{
 for i=1, #SkillSets do
 	t[#t+1] = makeMSDPoints(i)
 end
-
-t[#t+1] = LoadFont("Common Normal")..{
-	InitCommand  = function(self)
-		self:xy(frameWidth + capWideScale(get43size(-40),20), frameHeight/2-20)
-		self:zoom(0.75)
-		self:halign(1)
-		self:settext("Overall:")
-	end,
-	SetStepsMessageCommand = function(self, params)
-		local steps = params.steps
-		local MSD = steps:GetMSD(getCurRateValue(), 1)
-		self:settextf("Overall: %0.2f", MSD)
-		self:AddAttribute(8, {Length = -1, Diffuse = getMSDColor(MSD)})
-	end
-}
-
 
 return t

@@ -300,7 +300,6 @@ t[#t + 1] = Def.ActorFrame {
 		}
 	}
 }
-t[#t + 1] = LoadActor("_frame")
 t[#t + 1] = LoadFont("Common Large") .. {
 	InitCommand = function(self)
 		self:xy(5, 32):halign(0):valign(1):zoom(0.55):diffuse(getMainColor("positive"))
