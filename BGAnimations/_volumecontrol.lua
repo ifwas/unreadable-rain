@@ -24,12 +24,14 @@ function volControlBind(event)
     if AltPressed and event.DeviceInput.button == "DeviceButton_w" then
         curGameVolume = clamp(curGameVolume + 0.05, 0, 1)
         SOUND:SetVolume(curGameVolume)
+        PREFSMAN:SetPreference("SoundVolumeMaster", curGameVolume)
         MESSAGEMAN:Broadcast("volumeChanged")
 
     end
     if AltPressed and event.DeviceInput.button == "DeviceButton_q" then
         curGameVolume = clamp(curGameVolume - 0.05, 0, 1)
         SOUND:SetVolume(curGameVolume)
+        PREFSMAN:SetPreference("SoundVolumeMaster", curGameVolume)
         MESSAGEMAN:Broadcast("volumeChanged")
     end
 end
@@ -135,5 +137,5 @@ t[#t+1] = Def.ActorFrame {
 
 
 
-curGameVolume = PREFSMAN:GetPreference("SoundVolumeBGM")
+curGameVolume = PREFSMAN:GetPreference("SoundVolumeMaster")
 return t
