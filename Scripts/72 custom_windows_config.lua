@@ -83,9 +83,8 @@ local defaultConfig = {
 	]]
 	customWindowConfigs = {
 
-		
 		osumaniaOD8 = {
-			displayName = "o!m OD8",
+			displayName = "osu!mania OD8",
 			customWindowNames = {
 				W1 = "300g",
 				W2 = "300",
@@ -126,7 +125,7 @@ local defaultConfig = {
 		},
 
 		osumaniaOD85 = {
-			displayName = "o!m OD8.5",
+			displayName = "osu!mania OD85",
 			customWindowNames = {
 				W1 = "300g",
 				W2 = "300",
@@ -167,7 +166,7 @@ local defaultConfig = {
 		},
 
 		osumaniaOD9 = {
-			displayName = "o!m OD9",
+			displayName = "osu!mania OD9",
 			customWindowNames = {
 				W1 = "300g",
 				W2 = "300",
