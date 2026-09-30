@@ -345,6 +345,11 @@ t[#t + 1] = Def.Sprite {
 		else
 			self:visible(false)
 		end
+		if self:GetNumStates() > 1 then
+			self:StopUsingCustomTexCoords()
+		else
+			self:EnableCustomTexCoords()
+		end
 		self:diffusealpha(1)
 	end,
 }
